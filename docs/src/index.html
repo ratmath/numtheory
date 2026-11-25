@@ -1,0 +1,81 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>RatMath Number theory</title>
+<meta name="description" content="Number theory for RatMath: primes with certificates, congruences, Diophantine equations, p-adic numbers, elliptic curves and number fields.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&family=Space+Grotesk:wght@500;600;700&display=swap">
+<link rel="stylesheet" href="assets/style.css">
+<script type="module" src="assets/site.js"></script>
+</head>
+<body>
+<div class="shell">
+<aside></aside>
+<main>
+<article>
+<div class="eyebrow">@ratmath/numtheory</div>
+<h1>Number theory with proofs attached</h1>
+<p class="lede">From a first course to algebraic number theory: primes that come with a certificate, congruences and reciprocity, Diophantine equations, p-adic numbers, elliptic curves, and the arithmetic of number fields.</p>
+<p class="notice"><strong>Planned, not built yet.</strong> This site is the frame the package will grow into. The full plan is in the <a href="https://github.com/ratmath/ratmath/blob/main/docs/design/library-roadmap.md#4-a-number-theory-package-ratmathnumtheory">library roadmap</a>, and the <a href="https://ratmath.com/shelf/">RatMath Shelf</a> page lists what exists across all the libraries.</p>
+
+<h2>What it will cover</h2>
+<ul>
+  <li>Primes with primality certificates, arithmetic functions, congruences, quadratic reciprocity, sums of squares.</li>
+  <li>Continued fractions, Pell's equation and the modular toolkit, re-exported from algebraic.</li>
+  <li>Diophantine equations and binary quadratic forms.</li>
+  <li>p-adic numbers.</li>
+  <li>Elliptic curves, factoring with them, and curve-based primality certificates.</li>
+  <li>Integral bases, discriminants and the factorisation of primes into prime ideals.</li>
+  <li>Class groups and unit groups.</li>
+  <li>π(x), Dirichlet characters, and values of ζ and L-functions.</li>
+</ul>
+
+<h2>The order of work</h2>
+<p>The phases below come from the roadmap. Sizes are rough estimates in lines of source.</p>
+<div class="tablewrap"><table class="plan">
+<tr><th>Phase</th><th>Contents</th><th>Estimate</th></tr>
+<tr><td>1</td><td>Primes with certificates, arithmetic functions, congruences, reciprocity, sums of squares, re-exports</td><td>1,400</td></tr>
+<tr><td>2</td><td>Diophantine equations and binary quadratic forms</td><td>900</td></tr>
+<tr><td>3</td><td>p-adic numbers</td><td>500</td></tr>
+<tr><td>4</td><td>Elliptic curves; ECM and curve-based certificates</td><td>1,400</td></tr>
+<tr><td>5</td><td>Integral bases, discriminants, prime ideal factorisation</td><td>900</td></tr>
+<tr><td>6</td><td>Class groups and unit groups</td><td>1,500</td></tr>
+<tr><td>7</td><td>π(x), characters, ζ and L values</td><td>800</td></tr>
+</table></div>
+<p>It will build on: Core and algebraic (the modular kernel, continued fractions, number fields), analytic for the analytic part.</p>
+
+<h2>How the docs will be laid out</h2>
+<p>Like every library on the Shelf: this overview, an <a href="explore.html">Explore</a> page for trying things without writing code, a <a href="reference.html">Reference</a> listing every function, and one page per topic that explains the usage and the mathematics. Every page ends with a box of code you can edit and run.</p>
+<div class="cards" id="cards"></div>
+
+<h2>Until then</h2>
+<p>The box below already runs, with <code>@ratmath/core</code> in scope. It shows the kind of exactness the package is built on, done by hand.</p>
+<template data-runbox>
+// The extended Euclidean algorithm, on BigInts of any size.
+function bezout(a, b) {
+  let [r0, r1, s0, s1, t0, t1] = [a, b, 1n, 0n, 0n, 1n];
+  while (r1 !== 0n) {
+    const q = r0 / r1;
+    [r0, r1, s0, s1, t0, t1] = [r1, r0 - q * r1, s1, s0 - q * s1, t1, t0 - q * t1];
+  }
+  return { gcd: r0, s: s0, t: t0 };
+}
+const a = 2n ** 89n - 1n, b = 10n ** 20n + 39n;
+const { gcd, s, t } = bezout(a, b);
+PRINT("gcd =", gcd, "  check:", a * s + b * t === gcd);
+// convergents of 355/113's big sibling: the continued fraction of a fraction, from Core
+PRINT("continued fraction of 103993/33102:", new Rational(103993, 33102).toContinuedFractionString());
+plan.map((p) =&gt; `${p.phase}. ${p.contents}`)
+</template>
+</article>
+</main>
+</div>
+<script type="module">
+import { topicCards } from "./assets/site.js";
+topicCards(document.getElementById("cards"));
+</script>
+</body>
+</html>

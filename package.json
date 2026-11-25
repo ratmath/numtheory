@@ -1,0 +1,59 @@
+{
+  "name": "@ratmath/numtheory",
+  "version": "0.0.0",
+  "description": "Number theory for RatMath: primes with certificates, congruences, Diophantine equations, p-adic numbers, elliptic curves and number fields",
+  "type": "module",
+  "main": "index.js",
+  "exports": {
+    ".": {
+      "types": "./index.d.ts",
+      "default": "./index.js"
+    },
+    "./package.json": "./package.json"
+  },
+  "files": [
+    "index.js",
+    "index.d.ts",
+    "src/",
+    "README.md",
+    "CHANGELOG.md",
+    "LICENSE"
+  ],
+  "sideEffects": false,
+  "scripts": {
+    "test": "bun test ./tests",
+    "docs:build": "bun scripts/build-docs.js"
+  },
+  "keywords": [
+    "number-theory",
+    "primes",
+    "congruence",
+    "diophantine",
+    "elliptic-curve",
+    "exact",
+    "ratmath"
+  ],
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/ratmath/numtheory.git"
+  },
+  "homepage": "https://ratmath.com/numtheory/",
+  "bugs": {
+    "url": "https://github.com/ratmath/numtheory/issues"
+  },
+  "dependencies": {
+    "@ratmath/core": "^0.10.0"
+  },
+  "devDependencies": {
+    "katex": "0.19.1"
+  },
+  "types": "index.d.ts",
+  "author": "James Taylor",
+  "engines": {
+    "node": ">=22"
+  },
+  "publishConfig": {
+    "access": "public"
+  }
+}
