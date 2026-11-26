@@ -1,0 +1,70 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Quadratic reciprocity · RatMath Number Theory</title>
+<meta name="description" content="Quadratic residues in @ratmath/numtheory: Legendre, Jacobi and Kronecker symbols, Euler&#x27;s criterion, Gauss&#x27;s lemma, the reciprocity computation written out step by step, and square roots modulo n.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&family=Space+Grotesk:wght@500;600;700&display=swap">
+<link rel="stylesheet" href="assets/style.css">
+<script type="module" src="assets/site.js"></script>
+</head>
+<body>
+<div class="shell">
+<aside></aside>
+<main>
+<article>
+<div class="eyebrow">Quadratic reciprocity</div>
+<h1>Quadratic reciprocity</h1>
+<p class="lede">Which numbers are squares modulo p? Euler's criterion answers it with one power, and Gauss's law of quadratic reciprocity answers it faster, by turning the question upside down until it is trivial. The steps can be shown, line by line.</p>
+<h2>Residues and the Legendre symbol</h2>
+<p>For an odd prime \(p\) and \(p \nmid a\), \(a\) is a <em>quadratic residue</em> when \(x^2 \equiv a \pmod p\) has a solution. Exactly half of the nonzero residues are. The Legendre symbol \(\left(\frac ap\right)\) is \(1\) for a residue, \(-1\) for a non-residue and \(0\) when \(p \mid a\), and <strong>Euler's criterion</strong> computes it:</p>
+\[ \left(\frac ap\right) \equiv a^{(p-1)/2} \pmod p. \]
+<pre><code>import { legendre, jacobi, jacobiSteps, eulerCriterion, gaussLemma, quadraticResidues, sqrtsMod } from "@ratmath/numtheory";
+
+quadraticResidues(11);    // [0n, 1n, 3n, 4n, 5n, 9n]
+legendre(2, 7);           // 1: 3² = 9 ≡ 2
+eulerCriterion(3, 7);     // { power: 6n, value: -1 }: 3³ = 27 ≡ −1 (mod 7)
+gaussLemma(3, 11);        // { value: 1, mu: 2, large: [6n, 9n] }</code></pre>
+<p><strong>Gauss's lemma</strong> counts instead: among \(a, 2a, \dots, \frac{p-1}{2}a\) reduced into \((0, p)\), let \(\mu\) be how many exceed \(p/2\). Then \(\left(\frac ap\right) = (-1)^\mu\). For \(a = 3\), \(p = 11\) the residues are 3, 6, 9, 1, 4, and two of them are large.</p>
+
+<h2>The law of quadratic reciprocity</h2>
+<p>For distinct odd primes \(p, q\):</p>
+\[ \left(\frac pq\right)\left(\frac qp\right) = (-1)^{\frac{p-1}{2}\cdot\frac{q-1}{2}}, \]
+<p>so the two symbols agree unless both primes are \(3 \bmod 4\). With the two supplements \(\left(\frac{-1}{p}\right) = (-1)^{(p-1)/2}\) and \(\left(\frac 2p\right) = 1\) exactly when \(p \equiv \pm 1 \pmod 8\), any symbol can be computed like a gcd: reduce the top, pull out factors of 2, flip. The <strong>Jacobi symbol</strong> \(\left(\frac an\right) = \prod \left(\frac a{p_i}\right)\) for odd \(n = \prod p_i\) obeys the same rules, so the flips never need a factorisation. (A Jacobi symbol of 1 does not mean \(a\) is a square mod \(n\); a value of −1 does mean it is not.)</p>
+<pre><code>jacobiSteps(1001, 9907).steps;
+// (1001/9907)
+// = (9907/1001)   reciprocity: one of them is 1 mod 4, so the sign stays
+// = (898/1001)    reduce the top mod 1001
+// = (449/1001)    take out 2: (2/1001) = 1 since 1001 ≡ 1 (mod 8)
+// …
+// = −(1/29)       take out 2^3: (2/29) = −1 since 29 ≡ 5 (mod 8)
+// = −1</code></pre>
+<p>The <strong>Kronecker symbol</strong> extends the Jacobi symbol to every bottom: \(\left(\frac a2\right)\) is 0 for even \(a\), 1 for \(a \equiv \pm1 \pmod 8\), −1 for \(a \equiv \pm 3\), and \(\left(\frac a{-1}\right)\) is the sign of \(a\). It is the character \(\left(\frac D\cdot\right)\) attached to a quadratic field, which is how it appears in class number formulas.</p>
+
+<h2>Square roots modulo n</h2>
+<p>Modulo a prime, Tonelli–Shanks finds a root in a few powers (from algebraic's <code>sqrtMod</code>). Modulo a composite, find the roots modulo each prime power by Hensel lifting and combine them: so there can be many.</p>
+<pre><code>sqrtsMod(1, 15);    // [1n, 4n, 11n, 14n]
+sqrtsMod(4, 32);    // [2n, 6n, 10n, 14n, 18n, 22n, 26n, 30n]
+sqrtsMod(-1, 65);   // [8n, 18n, 47n, 57n]</code></pre>
+<template data-runbox>
+// reciprocity checked on all pairs of odd primes below 60
+const ps = primes(60).slice(1);
+let ok = true;
+for (const p of ps) for (const q of ps) {
+  if (p === q) continue;
+  const sign = ((p - 1n) / 2n) * ((q - 1n) / 2n) % 2n ? -1 : 1;
+  if (legendre(p, q) * legendre(q, p) !== sign) ok = false;
+}
+PRINT("reciprocity holds:", ok);
+// 2 is a square mod p exactly when p ≡ ±1 (mod 8)
+PRINT(primes(80).slice(1).map((p) =&gt; `${p}:${legendre(2, p) &gt; 0 ? "■" : "□"}`).join(" "));
+jacobiSteps(2024, 2027).steps.join("\n")
+</template>
+</article>
+</main>
+</div>
+</body>
+</html>

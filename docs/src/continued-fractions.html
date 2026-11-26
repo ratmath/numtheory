@@ -1,0 +1,61 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Continued fractions · RatMath Number Theory</title>
+<meta name="description" content="Continued fractions in @ratmath/numtheory: exact expansions of rational and algebraic numbers, convergents, periodic expansions of quadratic irrationals, Pell&#x27;s equation and fundamental units.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&family=Space+Grotesk:wght@500;600;700&display=swap">
+<link rel="stylesheet" href="assets/style.css">
+<script type="module" src="assets/site.js"></script>
+</head>
+<body>
+<div class="shell">
+<aside></aside>
+<main>
+<article>
+<div class="eyebrow">Continued fractions</div>
+<h1>Continued fractions</h1>
+<p class="lede">Every real number is a₀ + 1/(a₁ + 1/(a₂ + …)) with whole numbers aₖ, written [a₀; a₁, a₂, …]. Rationals stop, quadratic irrationals repeat forever, and the cut-off fractions are the best rational approximations there are.</p>
+<p class="notice">These functions moved here from <code>@ratmath/algebraic</code>, which still provides the algebraic numbers they work on.</p>
+<h2>Exact terms for any algebraic number</h2>
+<p>For an algebraic \(x\), the root of \(p\) in an interval, the next term is \(t = \lfloor x \rfloor\): shrink the interval until it lies between two integers. Then \(x = t + 1/y\), and \(y\) is a root of</p>
+\[ q(y) = y^d\, p(t + 1/y), \]
+<p>\(p\) shifted by \(t\) with its coefficients reversed, in the interval mapped by \(y = 1/(x - t)\). No digit of \(x\) is approximated, so every term is right. \(\sqrt[3]{2} = [1; 3, 1, 5, 1, 1, 4, 1, \dots]\) shows no pattern, and nobody knows whether its terms are bounded.</p>
+<pre><code>import { continuedFraction, convergents, periodicContinuedFraction, fromContinuedFraction, pell, fundamentalUnit } from "@ratmath/numtheory";
+import { nthRoot, sqrt, fromRational } from "@ratmath/algebraic";
+
+continuedFraction(nthRoot(fromRational(2), 3), 8);   // [1n, 3n, 1n, 5n, 1n, 1n, 4n, 1n]
+continuedFraction("103993/33102");                   // [3n, 7n, 15n, 1n, 292n]: a convergent of π
+convergents([1, 2, 2, 2]).map(String);               // ["1", "3/2", "7/5", "17/12"]</code></pre>
+<p>The convergents \(p_k/q_k\) satisfy \(p_k = a_k p_{k-1} + p_{k-2}\), \(q_k = a_k q_{k-1} + q_{k-2}\), and \(|x - p_k/q_k| < 1/q_k^2\). Each is closer to \(x\) than any fraction with a smaller denominator. A large next term means an unusually good convergent: \(\pi\)'s 355/113 comes right before the term 292.</p>
+
+<h2>Quadratic irrationals repeat</h2>
+<p><strong>Lagrange:</strong> the expansion is eventually periodic exactly when \(x\) is a quadratic irrational. Written as \(x = (P + \sqrt D)/Q\) with \(Q \mid D - P^2\), each step is</p>
+\[ a = \left\lfloor \frac{P + \sqrt D}{Q} \right\rfloor, \qquad P' = aQ - P, \qquad Q' = \frac{D - P'^2}{Q}, \]
+<p>all in integers. Only finitely many pairs \((P, Q)\) occur, so one repeats, and the period is read off exactly.</p>
+<pre><code>periodicContinuedFraction(sqrt(fromRational(7)));   // { preperiod: [2n], period: [1n, 1n, 1n, 4n] }
+fromContinuedFraction([1], [2]);                    // √2 exactly: [1; 2, 2, 2, …]</code></pre>
+
+<h2>Pell's equation and units</h2>
+<p>\(x^2 - Dy^2 = 1\) (\(D\) not a square) always has solutions, and the smallest comes from the period of \(\sqrt D\): if the period has length \(L\), the convergent just before the end of the first period gives \(p^2 - Dq^2 = (-1)^L\). For odd \(L\) that solves the \(-1\) equation, and a second period solves the \(+1\) equation. \(D = 61\) is Fermat's challenge to the English mathematicians. The same computation gives the <strong>fundamental unit</strong> \(\varepsilon > 1\) of the integers of \(\mathbb Q(\sqrt d)\): every unit is \(\pm\varepsilon^n\) (Dirichlet). The <a href="pell.html">Pell page</a> solves \(x^2 - Dy^2 = N\) for any \(N\).</p>
+<pre><code>pell(61);              // { x: 1766319049n, y: 226153980n, negative: { x: 29718n, y: 3805n } }
+fundamentalUnit(94);   // { unit: 2143295 + 221064√94, norm: 1 }</code></pre>
+<template data-runbox>
+PRINT("∛2 =", continuedFraction(nthRoot(fromRational(2), 3), 12));
+PRINT("√7 =", periodicContinuedFraction(sqrt(fromRational(7))));
+PRINT("convergents of √2:", convergents([1, 2, 2, 2, 2, 2]).map(String));
+PRINT("[1; 2, 2, …] =", format(fromContinuedFraction([1], [2])));
+// period lengths of √D, and where Pell's −1 equation is solvable (odd period)
+PRINT([2, 3, 5, 7, 13, 61, 94].map((D) =&gt; [D, periodicContinuedFraction(sqrt(fromRational(D))).period.length, pell(D).negative !== null]));
+const p = pell(61);
+PRINT("x² − 61y² = 1:", p.x, p.y);
+String(fundamentalUnit(94).unit)
+</template>
+</article>
+</main>
+</div>
+</body>
+</html>

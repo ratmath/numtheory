@@ -18,16 +18,129 @@
 <article>
 <div class="eyebrow">Reference</div>
 <h1>Everything in the library</h1>
-<p class="lede">Every export of <code>@ratmath/numtheory</code> will be listed here with what it takes and what it returns.</p>
-<p class="notice"><strong>Planned, not built yet.</strong> This site is the frame the package will grow into. The full plan is in the <a href="https://github.com/ratmath/ratmath/blob/main/docs/design/library-roadmap.md#4-a-number-theory-package-ratmathnumtheory">library roadmap</a>, and the <a href="https://ratmath.com/shelf/">RatMath Shelf</a> page lists what exists across all the libraries.</p>
-<div class="tablewrap"><table class="ref" id="ref">
+<p class="lede">Every export of <code>@ratmath/numtheory</code>. Whole-number arguments may be numbers, <code>BigInt</code>s, digit strings or Core <code>Rational</code>s with denominator 1; a JavaScript number that is not whole is refused. Results are <code>BigInt</code>s, except symbols (−1, 0, 1) and valuations, which are plain numbers. Refusals throw a <code>NumberTheoryError</code> whose <code>code</code> says why.</p>
+<h2>Primes and certificates</h2>
+<div class="tablewrap"><table class="ref">
 <tr><th>Export</th><th>What it does</th></tr>
-<tr><td>plan</td><td>The list of planned phases, each { phase, contents, estimate }. It is here so the package has something to load while it is empty, and it shrinks as phases are built.</td></tr>
+<tr><td><code>primes(limit)</code></td><td>The primes up to the limit (at most 10⁷), by the sieve of Eratosthenes.</td></tr>
+<tr><td><code>primePi(x), nthPrime(k)</code></td><td>\(\pi(x)\) by sieving (x ≤ 10⁸); the k-th prime.</td></tr>
+<tr><td><code>isPrime(n)</code></td><td>Proven below 2⁶⁴ (Baillie–PSW); above, by a certificate, or throws <code>"unproven"</code>.</td></tr>
+<tr><td><code>isProbablePrime(n)</code></td><td>Baillie–PSW alone: fast, not a proof above 2⁶⁴.</td></tr>
+<tr><td><code>nextPrime(n), prevPrime(n), primesBetween(a, b)</code></td><td>Neighbouring primes; the primes in a window (segmented sieve, b &lt; 2⁶⁴).</td></tr>
+<tr><td><code>provePrime(n, { budget })</code></td><td><code>{ prime, proven, certificate | factor | witness | reason }</code>: a Pocklington or Brillhart–Lehmer–Selfridge certificate, a factor or a Miller–Rabin witness, or the reason none was found.</td></tr>
+<tr><td><code>verifyCertificate(cert)</code></td><td>The independent checker: <code>{ valid: true }</code> or <code>{ valid: false, reason }</code>. Shares no code with the search.</td></tr>
+<tr><td><code>verifyComposite(n, { factor, witness })</code></td><td>Checks a proof of compositeness.</td></tr>
+<tr><td><code>millerRabinWitness(n, a)</code></td><td>True when a proves n composite by the strong test.</td></tr>
+<tr><td><code>PROVEN_BELOW</code></td><td>2⁶⁴.</td></tr>
+</table></div>
+<h2>Factoring</h2>
+<div class="tablewrap"><table class="ref">
+<tr><th>Export</th><th>What it does</th></tr>
+<tr><td><code>factor(n, { prove })</code></td><td><code>[{ prime, exponent, proven }]</code>, increasing: trial division, Pollard rho, p − 1. Refuses with <code>"too-hard"</code> when the factors are out of reach.</td></tr>
+<tr><td><code>formatFactors(fs)</code></td><td><code>"2^3 · 3 · 5^2"</code>.</td></tr>
+<tr><td><code>trialDivide(n, limit)</code></td><td><code>{ found: Map(prime → exponent), rest }</code>.</td></tr>
+<tr><td><code>pollardRho(n, { steps, seed })</code></td><td>A nontrivial factor by Brent's rho, or null.</td></tr>
+<tr><td><code>pollardPm1(n, bound)</code></td><td>A factor p with p − 1 smooth to the bound, or null.</td></tr>
+<tr><td><code>factorInteger, modPow, modInverse, multiplicativeOrder, primitiveRoot, discreteLogMod, sqrtMod, lll, recognize</code></td><td>Re-exported from <code>@ratmath/algebraic</code>, which keeps the modular kernel for its finite fields.</td></tr>
+</table></div>
+<h2>Arithmetic functions</h2>
+<div class="tablewrap"><table class="ref">
+<tr><th>Export</th><th>What it does</th></tr>
+<tr><td><code>divisors(n)</code></td><td>The positive divisors, increasing.</td></tr>
+<tr><td><code>sigma(n, k), tau(n)</code></td><td>\(\sigma_k(n) = \sum_{d \mid n} d^k\) (k = 1 by default); the number of divisors.</td></tr>
+<tr><td><code>totient(n), jordan(n, k), carmichael(n)</code></td><td>Euler's \(\varphi\), Jordan's \(J_k\), Carmichael's \(\lambda\).</td></tr>
+<tr><td><code>mobius(n), liouville(n)</code></td><td>\(\mu(n)\) and \(\lambda(n) = (-1)^{\Omega(n)}\).</td></tr>
+<tr><td><code>omega(n), bigOmega(n), radical(n), isSquarefree(n)</code></td><td>Distinct primes, primes with multiplicity, their product, square-freeness.</td></tr>
+<tr><td><code>aliquotSum(n), classify(n), isPerfect(n)</code></td><td>\(s(n) = \sigma(n) - n\); "perfect", "abundant" or "deficient".</td></tr>
+<tr><td><code>aliquotSequence(n, { steps, max })</code></td><td><code>{ terms, ending }</code>: "terminates", "perfect", "amicable", "cycle of length k" or "unfinished".</td></tr>
+<tr><td><code>amicablePairs(limit), perfectNumbers(count), lucasLehmer(p)</code></td><td>Amicable pairs up to the limit; even perfect numbers; the Lucas–Lehmer test of 2ᵖ − 1.</td></tr>
+<tr><td><code>dirichlet(f, g), mobiusInversion(F)</code></td><td>Dirichlet convolution; \(f = F * \mu\).</td></tr>
+<tr><td><code>unit, one, id</code></td><td>\(\varepsilon\), the constant 1, the identity: building blocks for convolutions.</td></tr>
+<tr><td><code>isMultiplicative(f, limit)</code></td><td>Checks \(f(mn) = f(m)f(n)\) on coprime pairs up to the limit (a check, not a proof).</td></tr>
+</table></div>
+<h2>Congruences</h2>
+<div class="tablewrap"><table class="ref">
+<tr><th>Export</th><th>What it does</th></tr>
+<tr><td><code>solveLinear(a, b, m)</code></td><td>Every x mod m with \(ax \equiv b\): <code>{ solutions, modulus, g, reduced }</code>, or no solutions with the reason.</td></tr>
+<tr><td><code>crt(residues, moduli)</code></td><td>The Chinese remainder theorem for any moduli: <code>{ x, modulus }</code> or null.</td></tr>
+<tr><td><code>solveLinearSystem([[a, b, m], …])</code></td><td>Each \(a_ix \equiv b_i \pmod{m_i}\) reduced, then combined.</td></tr>
+<tr><td><code>polyMod(poly, x, m)</code></td><td>An integer polynomial (constant first) at x, mod m.</td></tr>
+<tr><td><code>hensel(poly, r, p, k)</code></td><td>Lifts a simple root mod p to the root mod \(p^k\).</td></tr>
+<tr><td><code>rootsMod(poly, m)</code></td><td>Every root mod m: prime powers by lifting, combined by CRT.</td></tr>
+<tr><td><code>hasPrimitiveRoot(n), primitiveRootMod(n), order(a, n)</code></td><td>Gauss's condition; the least primitive root or null; the multiplicative order.</td></tr>
+<tr><td><code>discreteLog(g, h, n)</code></td><td>The least x with \(g^x \equiv h\), or null (baby-step giant-step).</td></tr>
+<tr><td><code>valuation(n, p)</code></td><td>\(v_p(n)\); Infinity for 0.</td></tr>
+</table></div>
+<h2>Reciprocity</h2>
+<div class="tablewrap"><table class="ref">
+<tr><th>Export</th><th>What it does</th></tr>
+<tr><td><code>legendre(a, p), jacobi(a, n), kronecker(a, n)</code></td><td>The quadratic symbols, as −1, 0 or 1.</td></tr>
+<tr><td><code>jacobiSteps(a, n)</code></td><td><code>{ value, steps }</code>: the reciprocity computation, one line per step.</td></tr>
+<tr><td><code>eulerCriterion(a, p), gaussLemma(a, p)</code></td><td><code>{ power, value }</code>; <code>{ value, mu, large }</code>.</td></tr>
+<tr><td><code>quadraticResidues(n), sqrtsMod(a, n)</code></td><td>The squares mod n; every square root of a mod n.</td></tr>
+</table></div>
+<h2>Sums of squares</h2>
+<div class="tablewrap"><table class="ref">
+<tr><th>Export</th><th>What it does</th></tr>
+<tr><td><code>primeAsTwoSquares(p)</code></td><td>p ≡ 1 (mod 4) as \(a^2 + b^2\), by Euclid's algorithm on p and a square root of −1 (Brillhart).</td></tr>
+<tr><td><code>twoSquaresAll(n), twoSquares(n), twoSquaresReason(n)</code></td><td>Every \(a^2 + b^2 = n\) with \(a \ge b \ge 0\) (Gaussian integers); one; why or why not.</td></tr>
+<tr><td><code>r2(n), r4(n), rk(n, k)</code></td><td>Representations counted with signs and order: Jacobi's formulas, and the theta series for any k ≤ 12.</td></tr>
+<tr><td><code>threeSquares(n), fourSquares(n)</code></td><td>Three squares unless \(n = 4^a(8b + 7)\) (then null); four always.</td></tr>
+<tr><td><code>pythagoreanTriples(limit)</code></td><td>Primitive triples with c ≤ limit, by Euclid's formula.</td></tr>
+<tr><td><code>triplesWithHypotenuse(c), triplesWithLeg(a)</code></td><td>Every triple, primitive or not, with that hypotenuse or leg.</td></tr>
+</table></div>
+<h2>Diophantine equations</h2>
+<div class="tablewrap"><table class="ref">
+<tr><th>Export</th><th>What it does</th></tr>
+<tr><td><code>linearDiophantine(coefficients, c)</code></td><td><code>{ solvable, g, particular, basis }</code>: every solution is the particular one plus an integer combination of the basis.</td></tr>
+<tr><td><code>nonNegativeSolutions(a, b, c)</code></td><td>The solutions of ax + by = c in non-negative integers.</td></tr>
+<tr><td><code>frobenius(coins), coinWays(amount, coins)</code></td><td>The largest unpayable amount; the number of ways to pay.</td></tr>
+<tr><td><code>pellSolutions(D, N), normEquation(D, N)</code></td><td>\(x^2 - Dy^2 = N\): <code>{ kind: "infinite", unit, fundamental, solutions(count) }</code> or <code>{ kind: "finite", solutions }</code>.</td></tr>
+<tr><td><code>egyptianGreedy(q), egyptianShortest(q, options)</code></td><td>Distinct unit fractions: greedy, or a shortest expansion by search.</td></tr>
+</table></div>
+<h2>Continued fractions</h2>
+<div class="tablewrap"><table class="ref">
+<tr><th>Export</th><th>What it does</th></tr>
+<tr><td><code>continuedFraction(x, terms)</code></td><td>The terms of a rational or real algebraic number, exactly.</td></tr>
+<tr><td><code>convergents(terms)</code></td><td>The convergents as Core Rationals.</td></tr>
+<tr><td><code>fromContinuedFraction(terms, period)</code></td><td>The number [a₀; a₁, …] or [preperiod; period repeating], as an AlgebraicReal.</td></tr>
+<tr><td><code>periodicContinuedFraction(x)</code></td><td><code>{ preperiod, period }</code> of a quadratic irrational.</td></tr>
+<tr><td><code>pell(D), fundamentalUnit(d), fromQuadratic(p, q, d, r)</code></td><td>The least solution of \(x^2 - Dy^2 = \pm 1\); the fundamental unit of \(\mathbb Q(\sqrt d)\); \((p + q\sqrt d)/r\) as an AlgebraicReal.</td></tr>
+</table></div>
+<h2>Binary quadratic forms</h2>
+<div class="tablewrap"><table class="ref">
+<tr><th>Export</th><th>What it does</th></tr>
+<tr><td><code>form(a, b, c), new Form(a, b, c)</code></td><td>\(ax^2 + bxy + cy^2\): <code>discriminant</code>, <code>at(x, y)</code>, <code>transform(M)</code>, <code>reduce()</code> → <code>{ form, matrix }</code>, <code>cycle()</code>, <code>isReduced()</code>, <code>isPrimitive()</code>.</td></tr>
+<tr><td><code>equivalent(f, g)</code></td><td><code>{ equivalent: true, matrix }</code> with f ∘ matrix = g, or false with the reason.</td></tr>
+<tr><td><code>compose(f, g), principalForm(D), inverseForm(f)</code></td><td>Gauss composition (reduced); the identity class; the inverse class.</td></tr>
+<tr><td><code>reducedForms(D), classNumber(D)</code></td><td>One reduced form per class; h(D), the narrow one for D &gt; 0.</td></tr>
+<tr><td><code>classGroup(D)</code></td><td><code>{ D, h, forms, identity, classOf, compose, inverse, order, structure }</code>; structure lists the invariant factors.</td></tr>
+<tr><td><code>representations(f, n), represent(f, n)</code></td><td>Every (x, y) with f(x, y) = n for definite f; one proper representation for any D, or null.</td></tr>
+</table></div>
+<h2>p-adic numbers</h2>
+<div class="tablewrap"><table class="ref">
+<tr><th>Export</th><th>What it does</th></tr>
+<tr><td><code>padic(x, p)</code></td><td>A p-adic number from a whole number, fraction text, Rational or another p-adic.</td></tr>
+<tr><td><code>Padic</code></td><td><code>approx(N)</code>, <code>valuation()</code>, <code>norm()</code>, <code>digits(k)</code>, <code>toString(k)</code>, <code>mod(N)</code>, <code>add</code>, <code>sub</code>, <code>mul</code>, <code>div</code>, <code>inv</code>, <code>pow</code>, <code>shift</code>, <code>sqrt</code>, <code>isSquare</code>, <code>exp</code>, <code>log</code>, <code>equalsTo(y, N)</code>. Lazy and exact; an undecidable valuation throws <code>"unknown-valuation"</code>.</td></tr>
+<tr><td><code>henselRoot(coefficients, r0, p)</code></td><td>The root of a polynomial starting at r0, by Newton's method.</td></tr>
+<tr><td><code>teichmuller(a, p)</code></td><td>The (p − 1)-th root of unity ≡ a (mod p).</td></tr>
+<tr><td><code>expansion(x, p)</code></td><td><code>{ valuation, preperiod, period }</code> of a rational's eventually periodic digits.</td></tr>
+<tr><td><code>padicValuation(x, p), padicNorm(x, p)</code></td><td>\(v_p(x)\) and \(|x|_p\) of a rational.</td></tr>
+</table></div>
+<h2>Integers and the rest</h2>
+<div class="tablewrap"><table class="ref">
+<tr><th>Export</th><th>What it does</th></tr>
+<tr><td><code>isqrt(n), iroot(n, k), gcd(a, b), lcm(a, b), egcd(a, b)</code></td><td>Integer roots, gcd and lcm, and Bézout's <code>{ g, x, y }</code>.</td></tr>
+<tr><td><code>NumberTheoryError</code></td><td>Thrown for refusals; <code>code</code> is one of "bad-argument", "too-large", "too-hard", "unproven", "unknown-valuation", "not-a-square", "diverges".</td></tr>
+<tr><td><code>plan</code></td><td>The phases still to come (4 to 7), each <code>{ phase, contents, estimate }</code>.</td></tr>
 </table></div>
 <template data-runbox>
-// The one export so far.
-for (const p of plan) PRINT(`phase ${p.phase}:`, p.contents, `(${p.estimate} lines)`);
-plan.length
+// a tour: one call from each section
+PRINT(provePrime(2n ** 89n - 1n).certificate.kind, formatFactors(factor(10n ** 18n + 1n)));
+PRINT(sigma(28), totient(1001), crt([1, 2, 3], [5, 7, 9]));
+PRINT(jacobi(1001, 9907), twoSquaresAll(65), fourSquares(2026));
+PRINT(frobenius([6, 9, 20]), pellSolutions(2, 7).fundamental, classGroup(-3299).structure);
+padic(-1, 5n).sqrt().toString(16)
 </template>
 </article>
 </main>
