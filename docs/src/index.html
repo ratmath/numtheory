@@ -20,11 +20,11 @@
 <h1>Number theory with proofs attached</h1>
 <p class="lede">From a first course to algebraic number theory: primes that come with a certificate, congruences and reciprocity, Diophantine equations, p-adic numbers, elliptic curves, and the arithmetic of number fields.</p>
 <h2>What is here</h2>
-<p>Phases 1 to 3 of the plan: primes with certificates, factoring, arithmetic functions, congruences, reciprocity and sums of squares; linear and Pell equations, continued fractions and binary quadratic forms; and p-adic numbers. Elliptic curves, algebraic number theory and the analytic side are planned and listed at the bottom of this page.</p>
+<p>Phases 1 to 4 of the plan: primes with certificates, factoring, arithmetic functions, congruences, reciprocity and sums of squares; linear and Pell equations, continued fractions and binary quadratic forms; p-adic numbers; and elliptic curves over the rationals and over finite fields, with the factoring method and the primality certificates built on them. Algebraic number theory and the analytic side are planned and listed at the bottom of this page.</p>
 <div class="cards" id="cards"></div>
 
 <h2>A first program</h2>
-<pre><code>import { isPrime, provePrime, verifyCertificate, factor, formatFactors, jacobiSteps, twoSquaresAll, pellSolutions, classGroup, padic } from "@ratmath/numtheory";
+<pre><code>import { isPrime, provePrime, verifyCertificate, factor, formatFactors, jacobiSteps, twoSquaresAll, pellSolutions, classGroup, padic, ellipticCurve } from "@ratmath/numtheory";
 
 isPrime(2n ** 61n - 1n);                     // true, proven: Baillie–PSW has no exceptions below 2^64
 const r = provePrime(2n ** 127n - 1n);       // a Pocklington certificate, a tree of smaller primes
@@ -35,10 +35,14 @@ jacobiSteps(1001, 9907).value;               // -1, with every reciprocity step 
 twoSquaresAll(325);                          // [[18n, 1n], [17n, 6n], [15n, 10n]]
 pellSolutions(2, 7).solutions(4);            // [[3n, 1n], [5n, 3n], [13n, 9n], [27n, 19n]]
 classGroup(-3299).structure;                 // [3n, 9n]: the class group is C3 × C9
-padic(-1, 5n).sqrt().toString(12);           // "…223032431212": i in the 5-adic integers</code></pre>
+padic(-1, 5n).sqrt().toString(12);           // "…223032431212": i in the 5-adic integers
+
+formatFactors(factor(2n ** 128n + 1n));      // "59649589127497217 · 5704689200685129054721", by the elliptic curve method
+isPrime(10n ** 60n + 7n);                    // true: an elliptic curve certificate, checked by the same verifier
+ellipticCurve([-43, 166]).torsion().structure;   // [7]: y² = x³ − 43x + 166 has a rational point of order 7</code></pre>
 
 <h2>Three ideas</h2>
-<p><strong>A proof, or a refusal.</strong> "Prime" means proven: below 2⁶⁴ by a test known to have no exceptions there, above it by a certificate that an independent verifier checks. When no certificate can be found, <code>isPrime</code> refuses and says why, rather than guessing. A composite comes with a factor or a witness. See <a href="primes.html">Primes and certificates</a>.</p>
+<p><strong>A proof, or a refusal.</strong> "Prime" means proven: below 2⁶⁴ by a test known to have no exceptions there, above it by a certificate (from the factors of n − 1, or from an elliptic curve) that an independent verifier checks. When no certificate can be found, <code>isPrime</code> refuses and says why, rather than guessing. A composite comes with a factor or a witness. See <a href="primes.html">Primes and certificates</a>.</p>
 <p><strong>Every "no" has a reason.</strong> A congruence with no solution names the gcd that blocks it, a number that is not a sum of two squares names the prime, two forms that are not equivalent name their different reduced forms, and an equivalence comes with the matrix that proves it.</p>
 <p><strong>Exact at any size, lazily where it must be.</strong> Everything is BigInt and Core Rational arithmetic. p-adic numbers have infinitely many digits, so they are rules that compute as many as asked, exactly; what digits alone cannot decide, such as whether a number is exactly zero, is reported as unknown. See <a href="padic.html">p-adic numbers</a>.</p>
 
@@ -49,7 +53,7 @@ padic(-1, 5n).sqrt().toString(12);           // "…223032431212": i in the 5-ad
 <tr><td>1</td><td>Primes with certificates, arithmetic functions, congruences, reciprocity, sums of squares, re-exports</td><td>built</td></tr>
 <tr><td>2</td><td>Diophantine equations and binary quadratic forms</td><td>built</td></tr>
 <tr><td>3</td><td>p-adic numbers</td><td>built</td></tr>
-<tr><td>4</td><td>Elliptic curves; ECM and curve-based certificates</td><td>1,400</td></tr>
+<tr><td>4</td><td>Elliptic curves; ECM and curve-based certificates</td><td>built</td></tr>
 <tr><td>5</td><td>Integral bases, discriminants, prime ideal factorisation</td><td>900</td></tr>
 <tr><td>6</td><td>Class groups and unit groups</td><td>1,500</td></tr>
 <tr><td>7</td><td>π(x), characters, ζ and L values</td><td>800</td></tr>

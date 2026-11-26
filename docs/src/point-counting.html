@@ -1,0 +1,97 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Counting points · RatMath Number Theory</title>
+<meta name="description" content="Elliptic curves over finite fields in @ratmath/numtheory: the group law mod p, Hasse&#x27;s bound, and three ways to count points: a character sum, baby steps and giant steps with Mestre&#x27;s twist, and Schoof&#x27;s algorithm.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&family=Space+Grotesk:wght@500;600;700&display=swap">
+<link rel="stylesheet" href="assets/style.css">
+<script type="module" src="assets/site.js"></script>
+</head>
+<body>
+<div class="shell">
+<aside></aside>
+<main>
+<article>
+<div class="eyebrow">Counting points</div>
+<h1>Counting points</h1>
+<p class="lede">Over the field of \(p\) elements a curve has finitely many points, and they still form a group. How many there are is the question behind elliptic curve cryptography, factoring and primality proving. Three methods, each faster and subtler than the last, and each a proof.</p>
+
+<h2>A curve over F<sub>p</sub></h2>
+<pre><code>import { ellipticCurve } from "@ratmath/numtheory";
+
+const C = ellipticCurve([2, 3], { mod: 97 });   // y² = x³ + 2x + 3 over F_97
+C.count();            // 100n, counting the point at infinity
+C.trace();            // -2n: #E = p + 1 − t
+C.points().length;    // 99
+C.liftX(3);           // [(3, 6), (3, 91)]
+const P = C.point(3, 6);
+C.add(P, P);          // (80, 10)
+C.order(P);           // 5n
+C.structure();        // { order: 100n, structure: [2n, 50n] }: the group is Z/2 × Z/50</code></pre>
+<p>Coordinates are BigInt residues. The modulus must be prime (proven: above \(2^{64}\) a certificate is found first). Every Weierstrass form works, including \(p = 2\) and \(p = 3\), where the short form does not exist. A curve over \(\mathbb{Q}\) reduces with <code>curve.modulo(p)</code>.</p>
+
+<h2>Hasse's theorem</h2>
+<p>About half of the \(x\) give a square on the right-hand side and so two points, which suggests about \(p + 1\) points in all. Hasse proved the error is small:</p>
+\[ \#E(\mathbb{F}_p) = p + 1 - t, \qquad |t| \le 2\sqrt p. \]
+<p>The number \(t\) is the <em>trace of Frobenius</em>: the map \(\varphi(x, y) = (x^p, y^p)\) sends the curve to itself and satisfies \(\varphi^2 - t\varphi + p = 0\). The group is always \(\mathbb{Z}/n_1 \times \mathbb{Z}/n_2\) with \(n_1 \mid n_2\) and \(n_1 \mid p - 1\); <code>structure()</code> proves it cyclic at once when no square factor of the order is compatible with that, and otherwise decides by the orders of all points, for small \(p\).</p>
+
+<h2>Three ways to count</h2>
+<pre><code>const B = ellipticCurve([2, 3], { mod: 1000003 });
+B.count({ method: "naive" });    // 999708n
+B.count({ method: "bsgs" });     // 999708n
+B.count({ method: "schoof" });   // 999708n</code></pre>
+<p><strong>The character sum.</strong> \(\#E = p + 1 + \sum_x \chi(x^3 + ax + b)\), where \(\chi\) is the Legendre symbol. One table of squares and one pass over \(x\): about \(p\) steps, fine up to a few million.</p>
+<p><strong>Baby steps and giant steps.</strong> The order of any point \(P\) divides \(\#E\), and \(\#E\) lies in the Hasse interval, which has length \(4\sqrt p\). Shanks's method finds a multiple of the order of \(P\) inside that interval in about \(p^{1/4}\) steps: store \(jP\) for small \(j\) and stride through the interval. From the multiple, the exact order follows by removing primes. One point may not settle it, because several multiples of its order can fit in the interval. Mestre's remedy is to work on the curve and on its quadratic twist together (their counts add up to \(2p + 2\)): he showed that for \(p &gt; 229\) one of the two has a point whose order has a single multiple in the interval. The count is accepted only when that uniqueness has been checked, so it is a proof.</p>
+<p><strong>Schoof's algorithm.</strong> Polynomial in \(\log p\). For a small prime \(l\), the equation \(\varphi^2 - t\varphi + p = 0\) is tested on the points of order \(l\): \(t \bmod l\) is the one \(\tau\) for which</p>
+\[ \varphi^2(P) + [p \bmod l]\,P = [\tau]\,\varphi(P) \quad\text{for every } P \text{ of order } l. \]
+<p>The points of order \(l\) are never found. They are the roots of the division polynomial \(\psi_l\), of degree \((l^2 - 1)/2\), and all of them are handled at once by computing with polynomials modulo \(\psi_l\) and the curve equation. Enough primes \(l\), with product above \(4\sqrt p\), determine \(t\) by the Chinese remainder theorem.</p>
+<pre><code>const big = ellipticCurve([2, 3], { mod: 1000000007 });
+const log = [];
+big.count({ method: "schoof", log });   // 1000004178n
+big.trace();                            // -4170n
+log;   // [{ l: 2, t: 0 }, { l: 3, t: 0 }, { l: 5, t: 0 }, { l: 7, t: 2 }, { l: 11, t: 10 }, { l: 13, t: 3 }, { l: 17, t: 12 }]</code></pre>
+<p>\(-4170\) is indeed \(0 \bmod 2, 3, 5\), \(2 \bmod 7\), \(10 \bmod 11\), \(3 \bmod 13\) and \(12 \bmod 17\), and \(2\cdot3\cdot5\cdot7\cdot11\cdot13\cdot17 = 510510\) exceeds \(4\sqrt p \approx 126491\). One subtlety: \(\psi_l\) need not be irreducible, so a division modulo it can fail. When it does, the failure hands over a factor of \(\psi_l\), and the computation is repeated modulo the factor; any factor will do, because the equation holds at every point of order \(l\).</p>
+<p>With <code>method: "auto"</code> (the default) the character sum is used below \(2^{22}\), baby steps and giant steps below \(2^{72}\), and Schoof above. The implementation of Schoof here uses schoolbook polynomial arithmetic and is meant to be read: it takes about a second at \(p \approx 10^{12}\) and grows quickly from there. The Elkies and Atkin improvements that make it fast for cryptographic sizes are not here.</p>
+
+<h2>Division polynomials</h2>
+<pre><code>C.divisionPolynomial(3);   // [93n, 36n, 12n, 0n, 3n]: 3x⁴ + 12x² + 36x + 93 = 3x⁴ + 6ax² + 12bx − a² mod 97</code></pre>
+<p>The roots of the \(n\)-th division polynomial are the x-coordinates of the points \(P \ne O\) with \(nP = O\). For even \(n\) the full \(\psi_n\) is \(2y\) times the polynomial returned, the factor \(y\) accounting for the points of order 2.</p>
+
+<h2>A key exchange</h2>
+<p>In a group where multiplying is easy and undoing it is hard, two people can agree on a secret in public: each picks a secret number, publishes that multiple of a base point, and multiplies the other's point by their own number. With toy sizes it looks like this; real curves have about \(2^{256}\) points and standardised parameters, and real implementations must also resist timing attacks, which this code does not try to do.</p>
+<template data-runbox>
+// the three counting methods agree
+const p = 1000003n;
+for (const [a, b] of [[2, 3], [1, 1], [0, 7], [5, 0]]) {
+  const C = ellipticCurve([a, b], { mod: p });
+  PRINT(String(C), C.count({ method: "naive" }), C.count({ method: "bsgs" }), C.count({ method: "schoof" }), " t =", C.trace());
+}
+
+// Schoof, one small prime at a time
+const big = ellipticCurve([2, 3], { mod: 1000000007 });
+const log = [];
+PRINT("#E =", big.count({ method: "schoof", log }), " t mod l:", log.map(({ l, t }) => `${t} mod ${l}`).join(", "));
+
+// group structures over F_101
+for (const cs of [[1, 0], [0, 1], [2, 3], [1, 1]]) {
+  const C = ellipticCurve(cs, { mod: 101 });
+  PRINT(String(C), C.structure().structure);
+}
+
+// a Diffie–Hellman exchange on a curve over a 61-bit field (a toy: far too small to be secure)
+const E = ellipticCurve([2, 3], { mod: 2n ** 61n - 1n });
+const G = E.randomPoint(5);
+const [alice, bob] = [123456789123456789n, 987654321987654321n];
+const [A, B] = [E.mul(alice, G), E.mul(bob, G)];   // these are published
+PRINT("shared secret:", E.mul(alice, B).x, E.equal(E.mul(alice, B), E.mul(bob, A)));
+E.count()
+</template>
+</article>
+</main>
+</div>
+</body>
+</html>

@@ -8,7 +8,7 @@ export type Whole = bigint | number | string | Rational;
 /** An exact rational: a whole number, fraction text ("3/7", "0.25") or a Rational. */
 export type RationalLike = bigint | number | string | Rational;
 
-/** Thrown for refusals; `code` says why ("bad-argument", "too-large", "unproven", "unknown-valuation", "not-a-square", "diverges", "too-hard"). */
+/** Thrown for refusals; `code` says why ("bad-argument", "too-large", "unproven", "unknown-valuation", "not-a-square", "diverges", "too-hard", "singular", "not-on-curve", "no-inverse"). */
 export class NumberTheoryError extends Error {
   code: string;
 }
@@ -44,7 +44,8 @@ export interface PrimeFactor {
   /** True below 2^64 and for larger primes with a certificate. */
   proven: boolean;
 }
-export function factor(n: Whole, options?: { prove?: boolean }): PrimeFactor[];
+/** Trial division, rho, p − 1, then the elliptic curve method; `effort` scales the number of curves. */
+export function factor(n: Whole, options?: { prove?: boolean; effort?: number }): PrimeFactor[];
 export function formatFactors(factors: Array<{ prime: bigint; exponent: number }>): string;
 
 export interface SmallCertificate {
@@ -75,16 +76,129 @@ export interface BLSCertificate {
   c2: bigint;
   factors: CertifiedFactor[];
 }
-export type Certificate = SmallCertificate | PocklingtonCertificate | BLSCertificate;
+/** A curve y² = x³ + ax + b mod n and a point (x, y) with m·P = 0 and (m/q)·P ≠ 0, for a certified prime q > (n^(1/4) + 1)². */
+export interface EllipticCertificate {
+  n: bigint;
+  kind: "elliptic";
+  /** The complex multiplication discriminant the curve was built from (information only; not checked). */
+  discriminant?: number;
+  a: bigint;
+  b: bigint;
+  x: bigint;
+  y: bigint;
+  m: bigint;
+  q: bigint;
+  certificate: Certificate;
+}
+export type Certificate = SmallCertificate | PocklingtonCertificate | BLSCertificate | EllipticCertificate;
 export type PrimalityProof =
   | { n: bigint; prime: true; proven: true; certificate: Certificate }
   | { n: bigint; prime: false; proven: true; factor?: bigint; witness?: bigint; reason?: string }
   | { n: bigint; prime: boolean; proven: false; reason: string };
-export function provePrime(n: Whole, options?: { budget?: number }): PrimalityProof;
+export function provePrime(
+  n: Whole,
+  options?: { budget?: number; elliptic?: boolean; maxDiscriminant?: number; maxClassNumber?: number },
+): PrimalityProof;
 export function millerRabinWitness(n: bigint, a: bigint): boolean;
 /** The independent checker: shares no code with the search. */
 export function verifyCertificate(cert: Certificate): { valid: true } | { valid: false; reason: string };
 export function verifyComposite(n: bigint, proof: { factor?: bigint; witness?: bigint }): { valid: true } | { valid: false; reason: string };
+
+// ---- elliptic curves
+
+/** A point of a curve: { x, y }, or the zero of the group { infinity: true }. T is Rational over Q and bigint over F_p. */
+export type CurvePoint<T> = { readonly x: T; readonly y: T; readonly infinity?: undefined } | { readonly infinity: true };
+export type PointLike<T> = CurvePoint<T> | [RationalLike, RationalLike] | { x: RationalLike; y: RationalLike } | null;
+export interface Reduction {
+  prime: bigint;
+  type: "good" | "multiplicative" | "additive";
+  /** For multiplicative reduction: are the tangents at the node defined over F_p? */
+  split?: boolean;
+  discriminantValuation: number;
+  /** 0, 1, or 2 for additive reduction at p ≥ 5; null for additive reduction at 2 or 3. */
+  conductorExponent: number | null;
+}
+export interface ModelChange<T> {
+  curve: EllipticCurve<Rational>;
+  to(P: PointLike<T>): CurvePoint<Rational>;
+  from(P: PointLike<Rational>): CurvePoint<T>;
+}
+/** y² + a1·xy + a3·y = x³ + a2·x² + a4·x + a6 over Q (T = Rational) or F_p (T = bigint). */
+export class EllipticCurve<T = Rational | bigint> {
+  readonly a1: T;
+  readonly a2: T;
+  readonly a3: T;
+  readonly a4: T;
+  readonly a6: T;
+  readonly b2: T;
+  readonly b4: T;
+  readonly b6: T;
+  readonly b8: T;
+  readonly c4: T;
+  readonly c6: T;
+  readonly discriminant: T;
+  readonly j: T;
+  /** null over Q, the prime p over F_p. */
+  readonly modulus: bigint | null;
+  readonly field: string;
+  readonly coefficients: [T, T, T, T, T];
+  readonly isShort: boolean;
+  readonly infinity: { readonly infinity: true };
+  toString(): string;
+  point(x: RationalLike, y: RationalLike): CurvePoint<T>;
+  has(P: PointLike<T>): boolean;
+  equal(P: PointLike<T>, Q: PointLike<T>): boolean;
+  neg(P: PointLike<T>): CurvePoint<T>;
+  add(P: PointLike<T>, Q: PointLike<T>): CurvePoint<T>;
+  sub(P: PointLike<T>, Q: PointLike<T>): CurvePoint<T>;
+  double(P: PointLike<T>): CurvePoint<T>;
+  mul(k: Whole, P: PointLike<T>): CurvePoint<T>;
+  /** A bigint; over Q, Infinity for a point of infinite order. */
+  order(P: PointLike<T>): bigint | number;
+
+  // over Q
+  readonly isIntegral: boolean;
+  shortModel(): ModelChange<T> & { A: bigint; B: bigint };
+  minimalModel(): ModelChange<T> & { u: Rational; r: Rational; s: Rational; t: Rational };
+  badPrimes(): bigint[];
+  reduction(p: Whole): Reduction;
+  /** Refuses with "too-hard" when the reduction at 2 or 3 is additive. */
+  conductor(): bigint;
+  modulo(p: Whole): EllipticCurve<bigint>;
+  torsion(): { order: number; structure: number[]; points: CurvePoint<T>[]; generators: CurvePoint<T>[] };
+  naiveHeight(P: PointLike<T>): bigint;
+  /** An enclosure of ĥ(P) = lim log H(x(2ⁿP))/4ⁿ; exact (0) for torsion points. */
+  height(P: PointLike<T>, options?: { doublings?: number }): { lower: Rational; upper: Rational; exact: boolean };
+  rationalPoints(bound?: Whole): CurvePoint<T>[];
+
+  // over F_p
+  count(options?: { method?: "auto" | "naive" | "bsgs" | "schoof"; log?: Array<{ l: number; t: number }> }): bigint;
+  trace(): bigint;
+  liftX(x: RationalLike): CurvePoint<T>[];
+  points(): CurvePoint<T>[];
+  randomPoint(seed?: Whole): CurvePoint<T>;
+  structure(): { order: bigint; structure: bigint[] };
+  divisionPolynomial(n: number): bigint[];
+}
+/** [a, b] for y² = x³ + ax + b, or [a1, a2, a3, a4, a6]; over Q, or over F_p with option mod. */
+export function ellipticCurve(coefficients: RationalLike[], options?: { mod?: undefined | null }): EllipticCurve<Rational>;
+export function ellipticCurve(coefficients: RationalLike[], options: { mod: Whole }): EllipticCurve<bigint>;
+
+export interface EcmReport {
+  factor: bigint | null;
+  /** 0: found while setting up the curve; 1 or 2: the stage; null: not found. */
+  stage: 0 | 1 | 2 | null;
+  sigma: bigint | null;
+  B1: number;
+  B2: number;
+}
+/** One Suyama curve (σ ≥ 6) of the elliptic curve method. */
+export function ecmCurve(n: Whole, sigma: Whole, options?: { B1?: number; B2?: number }): EcmReport;
+/** The elliptic curve method: a proper factor, or null. */
+export function ecm(n: Whole, options?: { B1?: number; B2?: number; curves?: number; sigma?: Whole; details?: false }): bigint | null;
+export function ecm(n: Whole, options: { B1?: number; B2?: number; curves?: number; sigma?: Whole; details: true }): EcmReport | null;
+/** The Hilbert class polynomial H_D (constant term first), or null when its rounding check fails. */
+export function classPolynomial(D: number | bigint): bigint[] | null;
 
 // ---- arithmetic functions
 

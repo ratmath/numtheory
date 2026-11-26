@@ -1,6 +1,6 @@
 {
   "name": "@ratmath/numtheory",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "Number theory for RatMath: primes with certificates, congruences, Diophantine equations, p-adic numbers, elliptic curves and number fields",
   "type": "module",
   "main": "index.js",

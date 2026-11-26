@@ -62,7 +62,8 @@ export function fdiv(a, b) {
 export function isqrt(n) {
   if (n < 0n) throw new RangeError("isqrt of a negative number");
   if (n < 2n) return n;
-  let x = BigInt(Math.floor(Math.sqrt(Number(n))));
+  // a float start when n fits in a double, a power of two above the root otherwise
+  let x = n >> 1000n === 0n ? BigInt(Math.floor(Math.sqrt(Number(n)))) : 1n << BigInt((n.toString(2).length + 1) >> 1);
   if (x === 0n) x = 1n;
   // Newton from a float start; correct the last step either way
   for (;;) {

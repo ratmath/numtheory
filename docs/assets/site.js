@@ -1,8 +1,8 @@
 // Shared page furniture for the numtheory docs: the contents column, the theme
 // switch and the code boxes. Add each topic page to PAGES as it is written.
 
-import * as A from "./numtheory.js?v=c60683044c";
-import { mountRunboxes } from "./runbox.js?v=c60683044c";
+import * as A from "./numtheory.js?v=beddfbdb56";
+import { mountRunboxes } from "./runbox.js?v=beddfbdb56";
 
 export { A };
 
@@ -13,6 +13,8 @@ export const PAGES = [
   { group: "Primes" },
   { href: "primes.html", title: "Primes and certificates", blurb: "Sieves, π(x), Baillie–PSW, and certificates checked by an independent verifier" },
   { href: "factoring.html", title: "Factoring", blurb: "Trial division, Pollard's rho and p − 1, with proven prime factors" },
+  { href: "ecm.html", title: "The elliptic curve method", blurb: "Lenstra's method: many groups instead of one, and the factors of F₇" },
+  { href: "elliptic-certificates.html", title: "Elliptic curve certificates", blurb: "Atkin–Morain proofs for primes that n − 1 cannot certify, checked independently" },
   { href: "arithmetic-functions.html", title: "Arithmetic functions", blurb: "σ, τ, φ, μ, λ; perfect and amicable numbers; Dirichlet convolution and Möbius inversion" },
   { group: "Congruences" },
   { href: "congruences.html", title: "Congruences", blurb: "Linear congruences, CRT for any moduli, Hensel lifting, primitive roots and indices" },
@@ -23,6 +25,9 @@ export const PAGES = [
   { href: "continued-fractions.html", title: "Continued fractions", blurb: "Exact expansions, best approximations, periodic quadratic irrationals, units" },
   { href: "pell.html", title: "Pell equations", blurb: "x² − Dy² = N: every class of solutions, by Nagell's bounds" },
   { href: "quadratic-forms.html", title: "Quadratic forms", blurb: "Reduction with proof, cycles, Gauss composition, class groups and their structure" },
+  { group: "Elliptic curves" },
+  { href: "elliptic-curves.html", title: "Elliptic curves", blurb: "The group law over Q, torsion, minimal models, reduction, and proven height bounds" },
+  { href: "point-counting.html", title: "Counting points", blurb: "Curves over F_p: Hasse's bound, baby steps and giant steps, Schoof's algorithm" },
   { group: "p-adic numbers" },
   { href: "padic.html", title: "p-adic numbers", blurb: "Lazy exact digits, valuations, square and Hensel roots, exp and log" },
 ];
