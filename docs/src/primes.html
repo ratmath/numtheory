@@ -1,0 +1,74 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Primes and certificates · RatMath Number Theory</title>
+<meta name="description" content="Primes in @ratmath/numtheory: sieves, prime counting, Baillie–PSW, and Pocklington and Brillhart–Lehmer–Selfridge certificates checked by an independent verifier.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&family=Space+Grotesk:wght@500;600;700&display=swap">
+<link rel="stylesheet" href="assets/style.css">
+<script type="module" src="assets/site.js"></script>
+</head>
+<body>
+<div class="shell">
+<aside></aside>
+<main>
+<article>
+<div class="eyebrow">Primes and certificates</div>
+<h1>Primes and certificates</h1>
+<p class="lede">Saying a big number is prime is easy; proving it is harder. Here every yes and every no comes with its reason: below 2<sup>64</sup> a test with no exceptions, above it a certificate that a separate checker verifies, and when no certificate can be found, an honest refusal.</p>
+<h2>Listing and counting</h2>
+<pre><code>import { primes, primePi, nthPrime, nextPrime, prevPrime, primesBetween } from "@ratmath/numtheory";
+
+primes(50);                 // [2n, 3n, 5n, …, 47n]: the sieve of Eratosthenes
+primePi(1000000);           // 78498n primes up to a million
+nthPrime(10000);            // 104729n
+nextPrime(10n ** 12n);      // 1000000000039n
+prevPrime(100);             // 97n
+primesBetween(10n ** 15n, 10n ** 15n + 100n);   // [1000000000000037n, 1000000000000091n]</code></pre>
+<p>The sieve crosses out the multiples of each prime \(p \le \sqrt{N}\), starting at \(p^2\); what survives is prime. <code>primesBetween</code> runs the same sieve on a window \([a, b]\) using the primes up to \(\sqrt b\), so a window high up costs no more than its width. The prime number theorem says \(\pi(x) \approx x/\ln x\): for \(x = 10^6\) that guess is 72 382, against the true 78 498.</p>
+
+<h2>Is it prime? Proven below 2<sup>64</sup></h2>
+<p>A <em>strong probable prime test</em> to base \(a\) writes \(n - 1 = 2^s d\) with \(d\) odd and checks that \(a^d \equiv 1\) or \(a^{2^r d} \equiv -1 \pmod n\) for some \(r < s\). A prime always passes (the only square roots of 1 modulo a prime are \(\pm 1\)); a composite fails for at least three quarters of the bases. The <em>Baillie–PSW</em> test combines one strong test to base 2 with a strong Lucas test. No composite passing both is known at all, and every number below \(2^{64}\) has been checked, so there it is a proof.</p>
+<pre><code>isPrime(2n ** 61n - 1n);          // true: proven, it is below 2^64
+isProbablePrime(2n ** 255n - 19n); // true, but not a proof
+isPrime(2n ** 255n - 19n);        // throws "unproven": n − 1 has too little known factorisation</code></pre>
+
+<h2>Certificates</h2>
+<p>Above \(2^{64}\), <code>provePrime</code> looks for a certificate. <strong>Pocklington's theorem</strong>: write \(n - 1 = F\cdot R\) with \(F\) completely factored. If for each prime \(q \mid F\) there is a base \(a\) with</p>
+\[ a^{n-1} \equiv 1 \pmod n \quad\text{and}\quad \gcd\!\left(a^{(n-1)/q} - 1,\ n\right) = 1, \]
+<p>then every prime factor \(p\) of \(n\) satisfies \(p \equiv 1 \pmod F\). (The order of \(a\) modulo \(p\) divides \(n - 1\) but not \((n-1)/q\), so \(q^{e}\) divides it, and the order divides \(p - 1\).) If \(F > \sqrt n - 1\), a prime factor would exceed \(\sqrt n\), so \(n\) is prime. The <strong>Brillhart–Lehmer–Selfridge</strong> refinement needs only \(F > n^{1/3}\): writing \(n - 1 = F(c_2 F + c_1)\), \(n\) is prime exactly when \(c_1^2 - 4c_2\) is not a perfect square.</p>
+<p>Each prime \(q\) in \(F\) needs its own certificate, so the result is a tree, ending in primes below \(2^{32}\) that trial division settles.</p>
+<pre><code>const r = provePrime(2n ** 127n - 1n);
+r.proven;                     // true
+r.certificate.kind;           // "pocklington"
+r.certificate.factors.map((f) =&gt; f.q);   // [2n, 3n, 7n, 19n, 43n, 73n, 127n, 337n, 5419n, 92737n]
+verifyCertificate(r.certificate);         // { valid: true }
+
+provePrime(561);              // { prime: false, proven: true, factor: 3n }
+provePrime(2n ** 67n - 1n);   // { prime: false, proven: true, witness: 3n }: Cole's number</code></pre>
+
+<h2>Why a separate verifier</h2>
+<p><code>verifyCertificate</code> lives in its own file and imports nothing from the rest of the package: its own modular power, its own gcd, its own square root. It trusts nothing in the certificate; it recomputes \(F\), checks that \(F\cdot R = n - 1\), that each listed \(q^e\) divides \(F\) and that they multiply to \(F\), each base condition, the size condition, and each sub-certificate in turn. So a bug in the search can produce no certificate, but it cannot produce a false one that passes. A composite answer is checked the same way: <code>verifyComposite</code> confirms a factor divides, or that a base is a Miller–Rabin witness.</p>
+<p>When \(n - 1\) cannot be factored far enough (a third of its bits for BLS), the answer says so and gives the reason: \(2^{255} - 19\) is such a case, and the elliptic-curve certificates that handle it are planned for a later phase.</p>
+<template data-runbox>
+// certify a few primes and check each certificate independently
+for (const p of [2n ** 89n - 1n, 2n ** 107n - 1n, 10n ** 30n + 57n]) {
+  const r = provePrime(p);
+  PRINT(p, r.certificate.kind, "F has", r.certificate.factors.length, "primes;", verifyCertificate(r.certificate));
+}
+// tamper with one: the verifier notices
+const c = provePrime(2n ** 89n - 1n).certificate;
+PRINT("tampered:", verifyCertificate({ ...c, n: c.n + 2n }));
+// composites come with a proof too
+const k = provePrime(3215031751n);   // a strong pseudoprime to bases 2, 3, 5 and 7
+PRINT(k, verifyComposite(3215031751n, k));
+primePi(10 ** 7)
+</template>
+</article>
+</main>
+</div>
+</body>
+</html>

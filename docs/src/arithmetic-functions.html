@@ -1,0 +1,71 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Arithmetic functions · RatMath Number Theory</title>
+<meta name="description" content="Arithmetic functions in @ratmath/numtheory: divisors, σ, τ, φ, μ, Carmichael&#x27;s λ, perfect and amicable numbers, aliquot sequences, Dirichlet convolution and Möbius inversion.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&family=Space+Grotesk:wght@500;600;700&display=swap">
+<link rel="stylesheet" href="assets/style.css">
+<script type="module" src="assets/site.js"></script>
+</head>
+<body>
+<div class="shell">
+<aside></aside>
+<main>
+<article>
+<div class="eyebrow">Arithmetic functions</div>
+<h1>Arithmetic functions</h1>
+<p class="lede">Functions on the positive integers that see a number through its divisors: how many there are, what they add to, how many residues are units. Most are multiplicative, so they come from the factorisation, and Dirichlet convolution ties them together.</p>
+<h2>The usual suspects</h2>
+<pre><code>import { divisors, sigma, tau, totient, mobius, carmichael } from "@ratmath/numtheory";
+
+divisors(60);     // [1n, 2n, 3n, 4n, 5n, 6n, 10n, 12n, 15n, 20n, 30n, 60n]
+tau(60);          // 12n   the number of divisors
+sigma(60);        // 168n  their sum;  sigma(60, 2) = 5460n, the sum of their squares
+totient(60);      // 16n   residues prime to 60
+carmichael(60);   // 4n    every unit mod 60 has a⁴ ≡ 1
+mobius(60);       // 0n    4 divides 60;  mobius(30) = -1n
+omega(60);        // 3n distinct primes;  bigOmega(60) = 4n with multiplicity</code></pre>
+<p>For \(n = \prod p^{e}\) the formulas are</p>
+\[ \tau(n) = \prod (e + 1), \qquad \sigma(n) = \prod \frac{p^{e+1} - 1}{p - 1}, \qquad \varphi(n) = n \prod_{p \mid n}\Bigl(1 - \frac1p\Bigr). \]
+<p>A function is <em>multiplicative</em> when \(f(mn) = f(m)f(n)\) for coprime \(m, n\); all of these are, so each is fixed by its values at prime powers. <code>isMultiplicative(f)</code> tests that on examples (it is a check, not a proof). Carmichael's \(\lambda(n)\) is the exponent of the unit group: \(\lambda(2^e) = 2^{e-2}\) for \(e \ge 3\), \(\lambda(p^e) = \varphi(p^e)\) otherwise, and the lcm across the prime powers. It divides \(\varphi(n)\), and it is smaller exactly when there is no primitive root.</p>
+
+<h2>Perfect, abundant, amicable</h2>
+<pre><code>classify(28);               // "perfect": σ(28) = 56 = 2·28
+perfectNumbers(6);          // [6n, 28n, 496n, 8128n, 33550336n, 8589869056n]
+amicablePairs(10000);       // [[220n, 284n], [1184n, 1210n], [2620n, 2924n], [5020n, 5564n], [6232n, 6368n]]
+aliquotSequence(12);        // 12, 16, 15, 9, 4, 3, 1, 0: "terminates"
+aliquotSequence(12496).ending;   // "cycle of length 5": a sociable chain
+aliquotSequence(276, { steps: 30 }).ending;   // "unfinished": nobody knows how 276 ends</code></pre>
+<p>Euclid showed \(2^{p-1}(2^p - 1)\) is perfect when \(2^p - 1\) is prime; Euler showed every even perfect number has that form. <code>perfectNumbers</code> finds the Mersenne primes with the Lucas–Lehmer test: with \(s_0 = 4\), \(s_{k+1} = s_k^2 - 2\), \(2^p - 1\) is prime exactly when \(s_{p-2} \equiv 0\). Whether an odd perfect number exists is open. The aliquot sequence iterates \(s(n) = \sigma(n) - n\); Catalan and Dickson conjectured that it always ends or cycles, and 276 is the smallest start nobody has followed to the end.</p>
+
+<h2>Dirichlet convolution</h2>
+<p>The convolution of two arithmetic functions is \((f * g)(n) = \sum_{d \mid n} f(d)\,g(n/d)\). It is commutative and associative, with identity \(\varepsilon\) (1 at 1, 0 elsewhere), and it turns the classical identities into one-liners:</p>
+\[ \mu * 1 = \varepsilon, \qquad \varphi * 1 = \mathrm{id}, \qquad \mathrm{id} * 1 = \sigma. \]
+<p><strong>Möbius inversion</strong> follows from the first: if \(F = f * 1\), then \(f = F * \mu\). So \(\varphi\) is recovered from \(\sum_{d\mid n}\varphi(d) = n\), and \(\mathrm{id}\) from \(\sigma\).</p>
+<pre><code>const e = dirichlet(mobius, one);
+[1n, 2n, 3n, 4n, 5n, 6n].map(e);              // [1n, 0n, 0n, 0n, 0n, 0n]: ε
+[1n, 2n, 6n, 12n].map(dirichlet(totient, one)); // [1n, 2n, 6n, 12n]: id
+[1n, 2n, 3n, 4n].map(mobiusInversion(sigma));  // [1n, 2n, 3n, 4n]: σ inverted is id</code></pre>
+<template data-runbox>
+// abundant numbers below 100, and the first odd one
+const abundant = [];
+for (let n = 1; n &lt; 100; n++) if (classify(n) === "abundant") abundant.push(n);
+PRINT("abundant &lt; 100:", abundant.join(" "));
+let n = 1n;
+while (classify(n) !== "abundant") n += 2n;
+PRINT("first odd abundant:", n, "σ =", sigma(n));
+// Gauss: Σ_{d | n} φ(d) = n, checked by convolution
+const F = dirichlet(totient, one);
+PRINT([1n, 7n, 36n, 360n, 1001n].map((k) =&gt; [k, F(k)]));
+// λ versus φ: no primitive root exactly where they differ
+[8n, 9n, 15n, 18n, 24n, 49n].map((k) =&gt; [k, totient(k), carmichael(k)])
+</template>
+</article>
+</main>
+</div>
+</body>
+</html>

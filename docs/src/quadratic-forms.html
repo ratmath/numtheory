@@ -1,0 +1,77 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Binary quadratic forms · RatMath Number Theory</title>
+<meta name="description" content="Binary quadratic forms in @ratmath/numtheory: reduction with the matrix that proves it, equivalence, cycles of indefinite forms, Gauss composition, class groups and their structure, and representations.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&family=Space+Grotesk:wght@500;600;700&display=swap">
+<link rel="stylesheet" href="assets/style.css">
+<script type="module" src="assets/site.js"></script>
+</head>
+<body>
+<div class="shell">
+<aside></aside>
+<main>
+<article>
+<div class="eyebrow">Binary quadratic forms</div>
+<h1>Binary quadratic forms</h1>
+<p class="lede">ax² + bxy + cy², with whole coefficients. Gauss sorted them into classes under changes of variable, found that the classes of one discriminant form a group, and so opened the road to class groups of number fields.</p>
+<h2>Forms, discriminants and equivalence</h2>
+<p>The form \(f = (a, b, c)\) has discriminant \(D = b^2 - 4ac\). A matrix \(M = \begin{pmatrix} p & q\\ r & s\end{pmatrix}\) of determinant 1 changes variables, \(f \circ M (x, y) = f(px + qy,\ rx + sy)\), keeping \(D\) and the set of values. Forms related that way are <em>properly equivalent</em>, and represent the same numbers.</p>
+<pre><code>import { form, equivalent, reducedForms, classNumber, classGroup, compose, represent, representations } from "@ratmath/numtheory";
+
+const f = form(10, 34, 29);
+f.discriminant;                // -4n
+const { form: g, matrix } = f.reduce();
+String(g);                     // "x² + y²"
+matrix;                        // [[-2n, 5n], [1n, -3n]]: f ∘ matrix = g, checked exactly
+equivalent([1, 0, 5], [2, 2, 3]);
+// { equivalent: false, reason: "they reduce to different forms, x² + 5y² and 2x² + 2xy + 3y²" }</code></pre>
+
+<h2>Reduction</h2>
+<p>A positive definite form (\(D < 0\), \(a > 0\)) is <em>reduced</em> when \(|b| \le a \le c\), with \(b \ge 0\) if either inequality is an equality. Every class contains exactly one reduced form (Lagrange, Gauss), found by alternately swapping \(a, c\) and shifting \(b\) by multiples of \(2a\). Since \(|b| \le a \le c\) forces \(3a^2 \le |D|\), there are finitely many, and counting them gives the <strong>class number</strong> \(h(D)\).</p>
+<pre><code>reducedForms(-23).map(String);   // ["x² + xy + 6y²", "2x² − xy + 3y²", "2x² + xy + 3y²"]
+classNumber(-23);                // 3n
+classNumber(-163);               // 1n: the largest of Heegner's nine</code></pre>
+<p>For \(D > 0\) the form is indefinite and a class contains several reduced forms, arranged in a <em>cycle</em> by Gauss's \(\rho\) operator \((a, b, c) \mapsto (c, -b + 2ck, \dots)\); the class is identified by its cycle. Then \(h\) is the <em>narrow</em> class number, which counts \(f\) and \(-f\) separately when no unit of norm \(-1\) links them.</p>
+<pre><code>form(1, 0, -14).cycle().map(String);   // ["x² + 6xy − 5y²", "−5x² + 4xy + 2y²", "2x² + 4xy − 5y²", "−5x² + 6xy + y²"]
+classNumber(12);                       // 2n: x² − 3y² and its negative are different classes</code></pre>
+
+<h2>The class group</h2>
+<p>Gauss defined a composition of primitive forms of the same discriminant, under which the classes form a finite abelian group: the identity is the class of the principal form \(\bigl(1,\ D \bmod 2,\ ((D \bmod 2) - D)/4\bigr)\), the inverse of \((a, b, c)\) is \((a, -b, c)\). Composition here follows Shanks's formulas (Cohen's Algorithm 5.4.7) and reduces the result. <code>classGroup</code> also finds the structure as a product of cyclic groups.</p>
+<pre><code>const G = classGroup(-84);
+G.h;                         // 4n
+G.forms.map(String);         // ["x² + 21y²", "2x² + 2xy + 11y²", "3x² + 7y²", "5x² + 4xy + 5y²"]
+G.structure;                 // [2n, 2n]: every class has order 2, Euler's idoneal numbers
+classGroup(-56).structure;   // [4n]: cyclic
+classGroup(-3299).structure; // [3n, 9n]
+String(compose([2, 1, 3], [2, 1, 3]));   // "2x² − xy + 3y²": in h(−23) = 3, the square is the inverse</code></pre>
+<p>The class numbers are checked in the tests against Dirichlet's class number formula \(h(D) = \frac{w}{2|D|}\sum_{a=1}^{|D|} -\left(\frac Da\right) a\) for every fundamental \(D\) down to −1500.</p>
+
+<h2>Representations</h2>
+<p>A positive definite form takes each value finitely often: from \(4af = (2ax + by)^2 + |D|y^2\), \(|y| \le \sqrt{4an/|D|}\). For any \(D\), \(f\) properly represents \(n\) exactly when \(f\) is equivalent to some \((n, b, \cdot)\) with \(b^2 \equiv D \pmod{4n}\), and the first column of the equivalence matrix is then the representation.</p>
+<pre><code>representations([1, 1, 6], 8);   // [[-2n, 1n], [-1n, -1n], [1n, 1n], [2n, -1n]]
+represent([1, 0, -2], 7);        // [-3n, 1n]: 9 − 2 = 7
+represent([1, 0, 5], 9);         // [2n, -1n]: 4 + 5 = 9</code></pre>
+<template data-runbox>
+// the imaginary quadratic discriminants with class number 1 (Heegner, Baker, Stark)
+const one = [];
+for (let D = -3; D &gt;= -200; D--) if (((D % 4) + 4) % 4 &lt;= 1 &amp;&amp; classNumber(D) === 1n) one.push(D);
+PRINT("h = 1:", one.join(" "));
+// a class group, its elements' orders and its structure
+const G = classGroup(-4620);
+PRINT("h(−4620) =", G.h, "structure", G.structure);
+PRINT(G.forms.slice(0, 8).map((f) =&gt; `${f}: order ${G.order(f)}`).join("\n"));
+// a form, a random change of variables, and back
+const f = form(3, 2, 5).transform([[7n, 3n], [2n, 1n]]);
+PRINT(String(f), "reduces to", String(f.reduce().form));
+equivalent(f, [3, 2, 5])
+</template>
+</article>
+</main>
+</div>
+</body>
+</html>

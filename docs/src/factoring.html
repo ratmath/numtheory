@@ -1,0 +1,59 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Factoring · RatMath Number Theory</title>
+<meta name="description" content="Integer factorisation in @ratmath/numtheory: trial division, Pollard&#x27;s rho with Brent&#x27;s cycle finding, Pollard&#x27;s p − 1, and factorisations whose prime factors are proven.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&family=Space+Grotesk:wght@500;600;700&display=swap">
+<link rel="stylesheet" href="assets/style.css">
+<script type="module" src="assets/site.js"></script>
+</head>
+<body>
+<div class="shell">
+<aside></aside>
+<main>
+<article>
+<div class="eyebrow">Factoring</div>
+<h1>Factoring</h1>
+<p class="lede">Splitting a number into primes: trial division for the small factors, Pollard's rho for the medium ones, and the p − 1 method when a factor happens to have a smooth neighbour. Every prime in the answer says whether it is proven.</p>
+<h2>The whole factorisation</h2>
+<pre><code>import { factor, formatFactors } from "@ratmath/numtheory";
+
+formatFactors(factor(600851475143n));   // "71 · 839 · 1471 · 6857"
+formatFactors(factor(2n ** 64n + 1n));  // "274177 · 67280421310721": Landry's 1880 split of F₆
+formatFactors(factor(10n ** 20n + 1n)); // "73 · 137 · 1676321 · 5964848081"
+factor(2n ** 67n - 1n);
+// [{ prime: 193707721n, exponent: 1, proven: true },
+//  { prime: 761838257287n, exponent: 1, proven: true }]</code></pre>
+<p><code>factor</code> divides out the primes below \(10^5\), then splits what is left: a probable prime goes into the answer, a perfect square is split into its roots, anything else goes to Pollard's rho and, if that fails, to \(p - 1\). Factors below \(2^{64}\) are proven by Baillie–PSW; a larger one is proven by a certificate, and <code>proven: false</code> says when that could not be found.</p>
+
+<h2>Pollard's rho</h2>
+<p>Iterate \(x \mapsto x^2 + c \pmod n\). Modulo an unknown prime \(p \mid n\) the sequence lives in a set of size \(p\), so it must repeat, and by the birthday paradox it does so after about \(\sqrt{p}\) steps: its picture is the Greek letter \(\rho\), a tail and a loop. Once \(x_i \equiv x_j \pmod p\), \(\gcd(x_i - x_j, n)\) is a multiple of \(p\). Brent's version finds the loop by comparing against a saved value at powers of two, and multiplies many differences together before taking one gcd. The cost is about \(\sqrt p\) multiplications: a 12-digit factor takes around a million.</p>
+<pre><code>pollardRho(1000000007n * 998244353n);   // 998244353n
+pollardPm1(1000000007n * 1000000009n);  // 1000000009n
+pollardPm1(2n ** 67n - 1n);             // null: see below</code></pre>
+
+<h2>Pollard's p − 1</h2>
+<p>If \(p - 1\) has only prime factors below a bound \(B\), then \(p - 1\) divides \(M = \prod_{q \le B} q^{\lfloor \log_q B \rfloor}\), and by Fermat \(a^M \equiv 1 \pmod p\), so \(\gcd(a^M - 1, n)\) picks \(p\) out. It finds 1000000009 in \(1000000007 \cdot 1000000009\) at once, because \(1000000008 = 2^3 \cdot 3^2 \cdot 7 \cdot 109^2 \cdot 167\) is smooth while \(1000000006 = 2 \cdot 500000003\) is not. It can also be too lucky: for Cole's number \(2^{67} - 1\) both \(p - 1\)s are smooth (\(193707720 = 2^3 \cdot 3^3 \cdot 5 \cdot 67 \cdot 2677\)), both factors drop out together, the gcd is \(n\) itself, and the method reports nothing.</p>
+
+<h2>Where it stops</h2>
+<p>Rho slows down when the smallest prime factor passes about 20 digits. The seventh Fermat number \(2^{128} + 1\) is the product of two primes of 17 and 22 digits; <code>factor</code> gives up on it with the reason rather than running for hours. The elliptic-curve method, which is to \(p - 1\) what a family of groups is to one group, is planned for the next number theory phase.</p>
+<template data-runbox>
+// Pollard rho on products of two primes of growing size
+for (const [p, q] of [[10007n, 10009n], [1000003n, 1000033n], [1000000007n, 1000000009n]]) {
+  PRINT(p * q, "=", pollardRho(p * q), "×", p * q / pollardRho(p * q));
+}
+PRINT(formatFactors(factor(2n ** 2n ** 5n + 1n)));   // F₅ = 641 · 6700417 (Euler)
+PRINT(formatFactors(factor(1234567890123456789n)));
+const t = trialDivide(2n ** 10n * 3n ** 5n * 1000003n);
+PRINT([...t.found], "rest", t.rest);
+factor(10n ** 30n + 1n)
+</template>
+</article>
+</main>
+</div>
+</body>
+</html>

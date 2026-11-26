@@ -1,0 +1,62 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Pell equations · RatMath Number Theory</title>
+<meta name="description" content="Generalised Pell equations x² − Dy² = N in @ratmath/numtheory: classes of solutions, Nagell&#x27;s bounds, the fundamental unit, and the finite cases.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&family=Space+Grotesk:wght@500;600;700&display=swap">
+<link rel="stylesheet" href="assets/style.css">
+<script type="module" src="assets/site.js"></script>
+</head>
+<body>
+<div class="shell">
+<aside></aside>
+<main>
+<article>
+<div class="eyebrow">Pell equations</div>
+<h1>Pell equations</h1>
+<p class="lede">x² − Dy² = N. For D > 0 not a square the solutions come in finitely many families, each a fundamental solution multiplied over and over by the fundamental unit. Finding every family takes only a bounded search.</p>
+<h2>Families of solutions</h2>
+<p>Write \(\alpha = x + y\sqrt D\), with norm \(N(\alpha) = x^2 - Dy^2\). Norms multiply, so if \(\alpha\) solves \(N(\alpha) = N\) and \(\varepsilon = x_1 + y_1\sqrt D\) is the smallest solution of \(x^2 - Dy^2 = 1\), then every \(\alpha\varepsilon^k\) is again a solution. Each <em>class</em> of solutions is one such orbit (up to sign), and there are finitely many classes.</p>
+<p><strong>Nagell's bounds</strong> say each class has a member with</p>
+\[ 0 \le y \le \sqrt{\frac{N(x_1 - 1)}{2D}} \ \ (N > 0), \qquad \sqrt{\frac{|N|}{D}} \le y \le \sqrt{\frac{|N|(x_1 + 1)}{2D}} \ \ (N < 0), \]
+<p>so a search over that range of \(y\) finds every class. <code>pellSolutions</code> returns those fundamental solutions, the unit, and a <code>solutions(count)</code> that walks the orbits in increasing size.</p>
+<pre><code>import { pellSolutions } from "@ratmath/numtheory";
+
+const r = pellSolutions(2, 7);
+r.kind;                // "infinite"
+r.unit;                // [3n, 2n]: 3² − 2·2² = 1
+r.fundamental;         // [[3n, 1n], [3n, -1n]]: two classes
+r.solutions(5);        // [[3n, 1n], [5n, 3n], [13n, 9n], [27n, 19n], [75n, 53n]]
+
+pellSolutions(61, 1).unit;              // [1766319049n, 226153980n]
+pellSolutions(13, -1).fundamental;      // [[18n, 5n]]
+pellSolutions(3, 2).fundamental;        // []: x² − 3y² = 2 has no solutions (try mod 3)</code></pre>
+
+<h2>When there are finitely many</h2>
+<p>For \(D < 0\) the form \(x^2 + |D|y^2\) is positive definite, and for \(D\) a perfect square \(k^2\) it factors as \((x - ky)(x + ky)\), so in both cases there are finitely many solutions and they are all listed.</p>
+<pre><code>pellSolutions(-1, 25).solutions.length;   // 12: the points of x² + y² = 25
+pellSolutions(4, 5).solutions;           // [[-3n, -1n], [-3n, 1n], [3n, -1n], [3n, 1n]]</code></pre>
+<p>The same question in the language of number fields is the norm equation \(N(\alpha) = n\) in the order \(\mathbb Z[\sqrt D]\); <code>normEquation</code> is a second name for it. The general theory, with class groups, is on the <a href="quadratic-forms.html">quadratic forms</a> page.</p>
+<template data-runbox>
+// every class of solutions of x² − 10y² = 6, and the first few of each size
+const r = pellSolutions(10, 6);
+PRINT("unit", r.unit, "fundamental", r.fundamental);
+for (const [x, y] of r.solutions(6)) PRINT(x, y, x * x - 10n * y * y);
+// which N in −20…20 occur as x² − 7y²?
+const hits = [];
+for (let N = -20; N &lt;= 20; N++) {
+  if (N === 0) continue;
+  const s = pellSolutions(7, N);
+  if (s.fundamental.length) hits.push(N);
+}
+hits.join(" ")
+</template>
+</article>
+</main>
+</div>
+</body>
+</html>

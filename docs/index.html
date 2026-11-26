@@ -12,8 +12,8 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&family=Space+Grotesk:wght@500;600;700&display=swap">
-<link rel="stylesheet" href="assets/style.css?v=f6751f95d3">
-<script type="module" src="assets/site.js?v=f6751f95d3"></script>
+<link rel="stylesheet" href="assets/style.css?v=c60683044c">
+<script type="module" src="assets/site.js?v=c60683044c"></script>
 </head>
 <body>
 <div class="shell">
@@ -23,57 +23,53 @@
 <div class="eyebrow">@ratmath/numtheory</div>
 <h1>Number theory with proofs attached</h1>
 <p class="lede">From a first course to algebraic number theory: primes that come with a certificate, congruences and reciprocity, Diophantine equations, p-adic numbers, elliptic curves, and the arithmetic of number fields.</p>
-<p class="notice"><strong>Planned, not built yet.</strong> This site is the frame the package will grow into. The full plan is in the <a href="https://github.com/ratmath/ratmath/blob/main/docs/design/library-roadmap.md#4-a-number-theory-package-ratmathnumtheory">library roadmap</a>, and the <a href="https://ratmath.com/shelf/">RatMath Shelf</a> page lists what exists across all the libraries.</p>
+<h2>What is here</h2>
+<p>Phases 1 to 3 of the plan: primes with certificates, factoring, arithmetic functions, congruences, reciprocity and sums of squares; linear and Pell equations, continued fractions and binary quadratic forms; and p-adic numbers. Elliptic curves, algebraic number theory and the analytic side are planned and listed at the bottom of this page.</p>
+<div class="cards" id="cards"></div>
 
-<h2>What it will cover</h2>
-<ul>
-  <li>Primes with primality certificates, arithmetic functions, congruences, quadratic reciprocity, sums of squares.</li>
-  <li>Continued fractions, Pell's equation and the modular toolkit, re-exported from algebraic.</li>
-  <li>Diophantine equations and binary quadratic forms.</li>
-  <li>p-adic numbers.</li>
-  <li>Elliptic curves, factoring with them, and curve-based primality certificates.</li>
-  <li>Integral bases, discriminants and the factorisation of primes into prime ideals.</li>
-  <li>Class groups and unit groups.</li>
-  <li>π(x), Dirichlet characters, and values of ζ and L-functions.</li>
-</ul>
+<h2>A first program</h2>
+<pre><code>import { isPrime, provePrime, verifyCertificate, factor, formatFactors, jacobiSteps, twoSquaresAll, pellSolutions, classGroup, padic } from "@ratmath/numtheory";
 
-<h2>The order of work</h2>
-<p>The phases below come from the roadmap. Sizes are rough estimates in lines of source.</p>
+isPrime(2n ** 61n - 1n);                     // true, proven: Baillie–PSW has no exceptions below 2^64
+const r = provePrime(2n ** 127n - 1n);       // a Pocklington certificate, a tree of smaller primes
+verifyCertificate(r.certificate);            // { valid: true }, by a checker that shares no code with the search
+formatFactors(factor(2n ** 64n + 1n));       // "274177 · 67280421310721"
+
+jacobiSteps(1001, 9907).value;               // -1, with every reciprocity step written out
+twoSquaresAll(325);                          // [[18n, 1n], [17n, 6n], [15n, 10n]]
+pellSolutions(2, 7).solutions(4);            // [[3n, 1n], [5n, 3n], [13n, 9n], [27n, 19n]]
+classGroup(-3299).structure;                 // [3n, 9n]: the class group is C3 × C9
+padic(-1, 5n).sqrt().toString(12);           // "…223032431212": i in the 5-adic integers</code></pre>
+
+<h2>Three ideas</h2>
+<p><strong>A proof, or a refusal.</strong> "Prime" means proven: below 2⁶⁴ by a test known to have no exceptions there, above it by a certificate that an independent verifier checks. When no certificate can be found, <code>isPrime</code> refuses and says why, rather than guessing. A composite comes with a factor or a witness. See <a href="primes.html">Primes and certificates</a>.</p>
+<p><strong>Every "no" has a reason.</strong> A congruence with no solution names the gcd that blocks it, a number that is not a sum of two squares names the prime, two forms that are not equivalent name their different reduced forms, and an equivalence comes with the matrix that proves it.</p>
+<p><strong>Exact at any size, lazily where it must be.</strong> Everything is BigInt and Core Rational arithmetic. p-adic numbers have infinitely many digits, so they are rules that compute as many as asked, exactly; what digits alone cannot decide, such as whether a number is exactly zero, is reported as unknown. See <a href="padic.html">p-adic numbers</a>.</p>
+
+<h2>What is planned</h2>
+<p>From the <a href="https://github.com/ratmath/ratmath/blob/main/docs/design/library-roadmap.md#4-a-number-theory-package-ratmathnumtheory">library roadmap</a>. Sizes are rough estimates in lines of source.</p>
 <div class="tablewrap"><table class="plan">
 <tr><th>Phase</th><th>Contents</th><th>Estimate</th></tr>
-<tr><td>1</td><td>Primes with certificates, arithmetic functions, congruences, reciprocity, sums of squares, re-exports</td><td>1,400</td></tr>
-<tr><td>2</td><td>Diophantine equations and binary quadratic forms</td><td>900</td></tr>
-<tr><td>3</td><td>p-adic numbers</td><td>500</td></tr>
+<tr><td>1</td><td>Primes with certificates, arithmetic functions, congruences, reciprocity, sums of squares, re-exports</td><td>built</td></tr>
+<tr><td>2</td><td>Diophantine equations and binary quadratic forms</td><td>built</td></tr>
+<tr><td>3</td><td>p-adic numbers</td><td>built</td></tr>
 <tr><td>4</td><td>Elliptic curves; ECM and curve-based certificates</td><td>1,400</td></tr>
 <tr><td>5</td><td>Integral bases, discriminants, prime ideal factorisation</td><td>900</td></tr>
 <tr><td>6</td><td>Class groups and unit groups</td><td>1,500</td></tr>
 <tr><td>7</td><td>π(x), characters, ζ and L values</td><td>800</td></tr>
 </table></div>
-<p>It will build on: Core and algebraic (the modular kernel, continued fractions, number fields), analytic for the analytic part.</p>
+<p>It builds on Core and algebraic (the modular kernel and the algebraic numbers that continued fractions expand); continued fractions, Pell's equation and the Chinese remainder theorem moved here from algebraic.</p>
 
-<h2>How the docs will be laid out</h2>
-<p>Like every library on the Shelf: this overview, an <a href="explore.html">Explore</a> page for trying things without writing code, a <a href="reference.html">Reference</a> listing every function, and one page per topic that explains the usage and the mathematics. Every page ends with a box of code you can edit and run.</p>
-<div class="cards" id="cards"></div>
-
-<h2>Until then</h2>
-<p>The box below already runs, with <code>@ratmath/core</code> in scope. It shows the kind of exactness the package is built on, done by hand.</p>
 <section class="runbox" aria-label="Runnable code">
   <div class="runbox-head"><strong>Try it</strong><span>Edit the code and run it with <code>@ratmath/numtheory</code> and Core's <code>Rational</code> in scope. The last line's value is shown; <code>PRINT(…)</code> adds lines, <code>TEX(…)</code> typesets math.</span></div>
-  <textarea spellcheck="false" autocapitalize="off" autocomplete="off" aria-label="Code">// The extended Euclidean algorithm, on BigInts of any size.
-function bezout(a, b) {
-  let [r0, r1, s0, s1, t0, t1] = [a, b, 1n, 0n, 0n, 1n];
-  while (r1 !== 0n) {
-    const q = r0 / r1;
-    [r0, r1, s0, s1, t0, t1] = [r1, r0 - q * r1, s1, s0 - q * s1, t1, t0 - q * t1];
-  }
-  return { gcd: r0, s: s0, t: t0 };
-}
-const a = 2n ** 89n - 1n, b = 10n ** 20n + 39n;
-const { gcd, s, t } = bezout(a, b);
-PRINT("gcd =", gcd, "  check:", a * s + b * t === gcd);
-// convergents of 355/113's big sibling: the continued fraction of a fraction, from Core
-PRINT("continued fraction of 103993/33102:", new Rational(103993, 33102).toContinuedFractionString());
-plan.map((p) =&gt; `${p.phase}. ${p.contents}`)</textarea>
+  <textarea spellcheck="false" autocapitalize="off" autocomplete="off" aria-label="Code">// primes, proofs and a little of everything
+const p = provePrime(2n ** 107n - 1n);
+PRINT("2^107 − 1:", p.certificate.kind, verifyCertificate(p.certificate));
+PRINT("F₆ =", formatFactors(factor(2n ** 64n + 1n)));
+PRINT("1105 as two squares:", twoSquaresAll(1105).map(([a, b]) =&gt; `${a}² + ${b}²`).join(", "));
+PRINT("x² − 2y² = 7:", pellSolutions(2, 7).solutions(5));
+PRINT("h(−3299) =", classNumber(-3299), "structure", classGroup(-3299).structure);
+padic("1/3", 5n).toString(16)</textarea>
   <div class="runbox-bar"><button type="button" data-run>Run</button><button type="button" class="ghost" data-reset>Reset</button><span class="runbox-meta">Ctrl/⌘ + Enter runs</span></div>
   <div class="runbox-out" aria-live="polite"></div>
 </section>
@@ -82,7 +78,7 @@ plan.map((p) =&gt; `${p.phase}. ${p.contents}`)</textarea>
 </main>
 </div>
 <script type="module">
-import { topicCards } from "./assets/site.js?v=f6751f95d3";
+import { topicCards } from "./assets/site.js?v=c60683044c";
 topicCards(document.getElementById("cards"));
 </script>
 </body>

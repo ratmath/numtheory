@@ -3,30 +3,50 @@
 Primes, congruences and equations in integers for [RatMath](https://ratmath.com/), part of the
 [RatMath Shelf](https://ratmath.com/shelf/).
 
-**Status: set up, nothing built yet.** This repository holds the package
-skeleton and the docs site. The plan is in the
+**Status: phases 1 to 3 built.** Primes with certificates, factoring,
+arithmetic functions, congruences, reciprocity, sums of squares, linear and Pell
+equations, continued fractions, binary quadratic forms and p-adic numbers. The
+rest of the plan is in the
 [library roadmap](https://github.com/ratmath/ratmath/blob/main/docs/design/library-roadmap.md#4-a-number-theory-package-ratmathnumtheory).
+Docs: [ratmath.com/numtheory](https://ratmath.com/numtheory/).
 
-From a first course to algebraic number theory: primes that come with a certificate, congruences and reciprocity, Diophantine equations, p-adic numbers, elliptic curves, and the arithmetic of number fields.
+```js
+import { provePrime, verifyCertificate, factor, formatFactors, pellSolutions, classGroup, padic } from "@ratmath/numtheory";
 
-## Planned
+const r = provePrime(2n ** 127n - 1n);     // a Pocklington certificate
+verifyCertificate(r.certificate);          // { valid: true }, from an independent checker
+formatFactors(factor(2n ** 64n + 1n));     // "274177 · 67280421310721"
+pellSolutions(2, 7).solutions(4);          // [[3n, 1n], [5n, 3n], [13n, 9n], [27n, 19n]]
+classGroup(-3299).structure;               // [3n, 9n]
+padic(-1, 5n).sqrt().toString(12);         // "…223032431212"
+```
 
-| Phase | Contents |
-|---|---|
-| 1 | Primes with certificates, arithmetic functions, congruences, reciprocity, sums of squares, re-exports |
-| 2 | Diophantine equations and binary quadratic forms |
-| 3 | p-adic numbers |
-| 4 | Elliptic curves; ECM and curve-based certificates |
-| 5 | Integral bases, discriminants, prime ideal factorisation |
-| 6 | Class groups and unit groups |
-| 7 | π(x), characters, ζ and L values |
+"Prime" means proven: below 2^64 by Baillie–PSW, which has no exceptions
+there, and above by a Pocklington or Brillhart–Lehmer–Selfridge certificate
+that `src/verify.js`, which imports nothing from the rest of the package,
+checks. When no certificate can be found `isPrime` refuses with the reason.
 
-It will depend on: Core and algebraic (the modular kernel, continued fractions, number fields), analytic for the analytic part.
+## Phases
+
+| Phase | Contents | Status |
+|---|---|---|
+| 1 | Primes with certificates, arithmetic functions, congruences, reciprocity, sums of squares, re-exports | built |
+| 2 | Diophantine equations and binary quadratic forms | built |
+| 3 | p-adic numbers | built |
+| 4 | Elliptic curves; ECM and curve-based certificates | planned |
+| 5 | Integral bases, discriminants, prime ideal factorisation | planned |
+| 6 | Class groups and unit groups | planned |
+| 7 | π(x), characters, ζ and L values | planned |
+
+It depends on Core and algebraic (vendored as a git submodule under
+`vendor/algebraic`; clone with `--recursive`). Continued fractions, Pell's
+equation and the Chinese remainder theorem moved here from algebraic, which
+keeps the modular kernel it needs for finite fields; those functions are
+re-exported.
 
 ## Layout
 
-- `index.js`, `src/`: the library. For now it exports only `plan`, the list
-  above, so that the tests and the docs build have something to load.
+- `index.js`, `src/`: the library; `index.d.ts` the types.
 - `tests/`: `bun run test`.
 - `docs/src/*.html`: the docs pages (overview, explore, reference, then one
   page per topic as topics are built). `bun run docs:build` writes `docs/`,
@@ -38,6 +58,7 @@ It will depend on: Core and algebraic (the modular kernel, continued fractions, 
 ## Development
 
 ```sh
+git submodule update --init
 bun install
 bun run test
 bun run docs:build

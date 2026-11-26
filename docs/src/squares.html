@@ -1,0 +1,66 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Sums of squares · RatMath Number Theory</title>
+<meta name="description" content="Sums of squares in @ratmath/numtheory: Fermat&#x27;s two-square theorem through Gaussian integers, Legendre&#x27;s three-square theorem, Lagrange&#x27;s four squares, the counts r₂, r₄ and r_k, and Pythagorean triples.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&family=Space+Grotesk:wght@500;600;700&display=swap">
+<link rel="stylesheet" href="assets/style.css">
+<script type="module" src="assets/site.js"></script>
+</head>
+<body>
+<div class="shell">
+<aside></aside>
+<main>
+<article>
+<div class="eyebrow">Sums of squares</div>
+<h1>Sums of squares</h1>
+<p class="lede">Which numbers are sums of two squares, of three, of four? Fermat, Legendre and Lagrange answered each, and Jacobi counted the ways. Every representation of n as a sum of two squares comes out of the factorisation of n in the Gaussian integers.</p>
+<h2>Two squares</h2>
+<p><strong>Fermat:</strong> an odd prime is a sum of two squares exactly when \(p \equiv 1 \pmod 4\). To find them, take \(x\) with \(x^2 \equiv -1 \pmod p\) and run Euclid's algorithm on \(p\) and \(x\); the first remainder below \(\sqrt p\) is \(a\), and \(p - a^2\) is a square (Cornacchia, Brillhart). <br>A number \(n\) is a sum of two squares exactly when every prime \(\equiv 3 \pmod 4\) divides it to an even power.</p>
+<pre><code>import { primeAsTwoSquares, twoSquaresAll, twoSquaresReason, r2, threeSquares, fourSquares, r4, pythagoreanTriples } from "@ratmath/numtheory";
+
+primeAsTwoSquares(13);            // [3n, 2n]
+primeAsTwoSquares(1000000009n);   // [31400n, 3747n]
+twoSquaresAll(325);               // [[18n, 1n], [17n, 6n], [15n, 10n]]
+twoSquaresReason(21);             // { possible: false, reason: "3 ≡ 3 (mod 4) divides 21 to the odd power 1" }
+r2(325);                          // 24n: with signs and order</code></pre>
+<p>Why: in the Gaussian integers \(\mathbb Z[i]\), \(a^2 + b^2 = (a + bi)(a - bi)\). A prime \(p \equiv 1 \pmod 4\) splits as \(\pi\bar\pi\), a prime \(\equiv 3\) stays prime, and \(2 = -i(1 + i)^2\). So the elements of norm \(n\) are found by choosing, for each \(p^e \parallel n\) with \(p \equiv 1\), how many of the \(e\) factors are \(\pi\) and how many \(\bar\pi\). Counting the choices gives Jacobi's formula</p>
+\[ r_2(n) = 4\bigl(d_1(n) - d_3(n)\bigr) = 4\prod_{p \equiv 1 (4)} (e_p + 1) \]
+<p>(when no prime \(\equiv 3\) appears to an odd power), with \(d_i\) the number of divisors \(\equiv i \pmod 4\). \(325 = 5^2 \cdot 13\) gives \(4 \cdot 3 \cdot 2 = 24\).</p>
+
+<h2>Three squares and four</h2>
+<p><strong>Legendre and Gauss:</strong> \(n\) is a sum of three squares unless \(n = 4^a(8b + 7)\). <strong>Lagrange:</strong> every \(n\) is a sum of four. Jacobi again counts:</p>
+\[ r_4(n) = 8 \sum_{d \mid n,\ 4 \nmid d} d. \]
+<pre><code>threeSquares(30);    // [5n, 2n, 1n]
+threeSquares(28);    // null: 28 = 4·7
+fourSquares(112);    // [8n, 4n, 4n, 4n]: 112 = 16·7 needs four
+r4(12);              // 96n
+rk(10, 8);           // 14112n: r₈(10), by multiplying out the theta series</code></pre>
+<p><code>rk</code> counts directly as the coefficient of \(q^n\) in \(\theta(q)^k\), \(\theta(q) = \sum_{m \in \mathbb Z} q^{m^2}\), which is also how the tests check the formulas.</p>
+
+<h2>Pythagorean triples</h2>
+<p>Every primitive triple \(a^2 + b^2 = c^2\) with \(a\) odd is \(a = m^2 - n^2\), \(b = 2mn\), \(c = m^2 + n^2\) for coprime \(m > n > 0\) of opposite parity (Euclid). Read in \(\mathbb Z[i]\): \(a + bi = (m + ni)^2\). So the triples with hypotenuse \(c\) are the representations of \(c^2\) as a sum of two squares, and those with leg \(a\) come from factoring \(a^2 = (c - b)(c + b)\).</p>
+<pre><code>pythagoreanTriples(30);         // [[3n, 4n, 5n], [5n, 12n, 13n], [15n, 8n, 17n], [7n, 24n, 25n], [21n, 20n, 29n]]
+triplesWithHypotenuse(65);      // [[16n, 63n, 65n], [25n, 60n, 65n], [33n, 56n, 65n], [39n, 52n, 65n]]
+triplesWithLeg(12);             // [[12n, 5n, 13n], [12n, 9n, 15n], [12n, 16n, 20n], [12n, 35n, 37n]]</code></pre>
+<template data-runbox>
+// the numbers below 50 that are not sums of two squares, and why the first few fail
+const no = [];
+for (let n = 1; n &lt; 50; n++) if (!twoSquares(n)) no.push(n);
+PRINT(no.join(" "));
+PRINT(twoSquaresReason(45), twoSquaresReason(77));
+// Jacobi's formulas against direct counting
+PRINT([1, 5, 25, 65, 325, 1105].map((n) =&gt; [n, r2(n), rk(n, 2)]));
+PRINT([1, 2, 7, 12, 100].map((n) =&gt; [n, r4(n), rk(n, 4)]));
+// the smallest numbers with many representations as two squares
+[5n, 25n, 65n, 325n, 1105n, 5525n].map((n) =&gt; [n, twoSquaresAll(n).length])
+</template>
+</article>
+</main>
+</div>
+</body>
+</html>
