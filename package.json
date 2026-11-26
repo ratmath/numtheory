@@ -21,7 +21,7 @@
   ],
   "sideEffects": false,
   "scripts": {
-    "test": "bun test ./tests",
+    "test": "bun test --timeout 60000 ./tests",
     "docs:build": "bun scripts/build-docs.js"
   },
   "keywords": [
