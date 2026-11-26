@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Primes and certificates · RatMath Number Theory</title>
-<meta name="description" content="Primes in @ratmath/numtheory: sieves, prime counting, Baillie–PSW, and Pocklington and Brillhart–Lehmer–Selfridge certificates checked by an independent verifier.">
+<meta name="description" content="Primes in @ratmath/numtheory: sieves, prime counting, Baillie–PSW, and Pocklington, Brillhart–Lehmer–Selfridge and elliptic curve certificates checked by an independent verifier.">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&family=Space+Grotesk:wght@500;600;700&display=swap">
@@ -52,7 +52,7 @@ provePrime(2n ** 67n - 1n);   // { prime: false, proven: true, witness: 3n }: Co
 
 <h2>Why a separate verifier</h2>
 <p><code>verifyCertificate</code> lives in its own file and imports nothing from the rest of the package: its own modular power, its own gcd, its own square root. It trusts nothing in the certificate; it recomputes \(F\), checks that \(F\cdot R = n - 1\), that each listed \(q^e\) divides \(F\) and that they multiply to \(F\), each base condition, the size condition, and each sub-certificate in turn. So a bug in the search can produce no certificate, but it cannot produce a false one that passes. A composite answer is checked the same way: <code>verifyComposite</code> confirms a factor divides, or that a base is a Miller–Rabin witness.</p>
-<p>When \(n - 1\) cannot be factored far enough (a third of its bits for BLS), the answer says so and gives the reason: \(2^{255} - 19\) is such a case, and the elliptic-curve certificates that handle it are planned for a later phase.</p>
+<p>When \(n - 1\) cannot be factored far enough (a third of its bits for BLS), <code>provePrime</code> turns to an elliptic curve: a curve modulo \(n\) with a point whose order is a large prime \(q\), which is certified in turn. \(10^{60} + 7\) is such a case. The same verifier checks those certificates; see <a href="elliptic-certificates.html">Elliptic curve certificates</a>. With <code>{ elliptic: false }</code> only \(n - 1\) is used, and a number it cannot certify comes back with <code>proven: false</code> and the reason.</p>
 <template data-runbox>
 // certify a few primes and check each certificate independently
 for (const p of [2n ** 89n - 1n, 2n ** 107n - 1n, 10n ** 30n + 57n]) {

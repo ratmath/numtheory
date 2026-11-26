@@ -5,6 +5,8 @@
 // algebraic), and the modular toolkit re-exported from algebraic.
 // Phase 2: Diophantine equations and binary quadratic forms.
 // Phase 3: p-adic numbers.
+// Phase 4: elliptic curves over Q and F_p, the elliptic curve method of
+// factoring, and elliptic curve primality certificates.
 // `plan` lists what is still to come.
 
 export { NumberTheoryError, isqrt, iroot, gcd, lcm, egcd } from "./src/int.js";
@@ -13,6 +15,9 @@ export {
   pollardRho, pollardPm1, trialDivide, factor, formatFactors, provePrime, millerRabinWitness, PROVEN_BELOW,
 } from "./src/primes.js";
 export { verifyCertificate, verifyComposite } from "./src/verify.js";
+export { EllipticCurve, ellipticCurve } from "./src/elliptic.js";
+export { ecm, ecmCurve } from "./src/ecm.js";
+export { classPolynomial } from "./src/ecpp.js";
 export {
   divisors, sigma, tau, mobius, totient, jordan, carmichael, omega, bigOmega, liouville, radical, isSquarefree,
   aliquotSum, classify, isPerfect, aliquotSequence, amicablePairs, perfectNumbers, lucasLehmer,

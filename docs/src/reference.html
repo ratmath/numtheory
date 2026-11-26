@@ -27,7 +27,8 @@
 <tr><td><code>isPrime(n)</code></td><td>Proven below 2⁶⁴ (Baillie–PSW); above, by a certificate, or throws <code>"unproven"</code>.</td></tr>
 <tr><td><code>isProbablePrime(n)</code></td><td>Baillie–PSW alone: fast, not a proof above 2⁶⁴.</td></tr>
 <tr><td><code>nextPrime(n), prevPrime(n), primesBetween(a, b)</code></td><td>Neighbouring primes; the primes in a window (segmented sieve, b &lt; 2⁶⁴).</td></tr>
-<tr><td><code>provePrime(n, { budget })</code></td><td><code>{ prime, proven, certificate | factor | witness | reason }</code>: a Pocklington or Brillhart–Lehmer–Selfridge certificate, a factor or a Miller–Rabin witness, or the reason none was found.</td></tr>
+<tr><td><code>provePrime(n, { budget, elliptic, maxDiscriminant, maxClassNumber })</code></td><td><code>{ prime, proven, certificate | factor | witness | reason }</code>: a Pocklington, Brillhart–Lehmer–Selfridge or elliptic curve certificate, a factor or a Miller–Rabin witness, or the reason none was found. <code>elliptic: false</code> uses n − 1 only.</td></tr>
+<tr><td><code>classPolynomial(D)</code></td><td>The Hilbert class polynomial \(H_D\) of a negative discriminant, coefficients constant term first; its degree is the class number.</td></tr>
 <tr><td><code>verifyCertificate(cert)</code></td><td>The independent checker: <code>{ valid: true }</code> or <code>{ valid: false, reason }</code>. Shares no code with the search.</td></tr>
 <tr><td><code>verifyComposite(n, { factor, witness })</code></td><td>Checks a proof of compositeness.</td></tr>
 <tr><td><code>millerRabinWitness(n, a)</code></td><td>True when a proves n composite by the strong test.</td></tr>
@@ -36,7 +37,9 @@
 <h2>Factoring</h2>
 <div class="tablewrap"><table class="ref">
 <tr><th>Export</th><th>What it does</th></tr>
-<tr><td><code>factor(n, { prove })</code></td><td><code>[{ prime, exponent, proven }]</code>, increasing: trial division, Pollard rho, p − 1. Refuses with <code>"too-hard"</code> when the factors are out of reach.</td></tr>
+<tr><td><code>factor(n, { prove, effort })</code></td><td><code>[{ prime, exponent, proven }]</code>, increasing: trial division, Pollard rho, p − 1, then the elliptic curve method. Refuses with <code>"too-hard"</code> when the factors are out of reach; <code>effort</code> scales the number of curves.</td></tr>
+<tr><td><code>ecm(n, { B1, B2, curves, sigma, details })</code></td><td>The elliptic curve method: a proper factor or <code>null</code>; with <code>details</code>, <code>{ factor, stage, sigma, B1, B2 }</code>.</td></tr>
+<tr><td><code>ecmCurve(n, sigma, { B1, B2 })</code></td><td>One Suyama curve, as a report.</td></tr>
 <tr><td><code>formatFactors(fs)</code></td><td><code>"2^3 · 3 · 5^2"</code>.</td></tr>
 <tr><td><code>trialDivide(n, limit)</code></td><td><code>{ found: Map(prime → exponent), rest }</code>.</td></tr>
 <tr><td><code>pollardRho(n, { steps, seed })</code></td><td>A nontrivial factor by Brent's rho, or null.</td></tr>
@@ -117,6 +120,22 @@
 <tr><td><code>classGroup(D)</code></td><td><code>{ D, h, forms, identity, classOf, compose, inverse, order, structure }</code>; structure lists the invariant factors.</td></tr>
 <tr><td><code>representations(f, n), represent(f, n)</code></td><td>Every (x, y) with f(x, y) = n for definite f; one proper representation for any D, or null.</td></tr>
 </table></div>
+<h2>Elliptic curves</h2>
+<div class="tablewrap"><table class="ref">
+<tr><th>Export</th><th>What it does</th></tr>
+<tr><td><code>ellipticCurve([a, b])</code>, <code>ellipticCurve([a1, a2, a3, a4, a6])</code></td><td>A curve over \(\mathbb{Q}\); with <code>{ mod: p }</code>, over \(\mathbb{F}_p\). An <code>EllipticCurve</code>, with <code>a1 … a6, b2 … b8, c4, c6, discriminant, j, modulus, coefficients, infinity</code>.</td></tr>
+<tr><td><code>E.point(x, y), E.has(P), E.equal(P, Q)</code></td><td>A checked point <code>{ x, y }</code>; membership; equality.</td></tr>
+<tr><td><code>E.add(P, Q), E.sub(P, Q), E.neg(P), E.double(P), E.mul(k, P)</code></td><td>The group law.</td></tr>
+<tr><td><code>E.order(P)</code></td><td>A BigInt; over \(\mathbb{Q}\), <code>Infinity</code> for a point of infinite order.</td></tr>
+<tr><td><code>E.torsion()</code></td><td>Over \(\mathbb{Q}\): <code>{ order, structure, points, generators }</code>.</td></tr>
+<tr><td><code>E.shortModel(), E.minimalModel()</code></td><td><code>{ curve, to(P), from(P), … }</code>: a short integral model; the global minimal model with its change of variables <code>u, r, s, t</code>.</td></tr>
+<tr><td><code>E.badPrimes(), E.reduction(p), E.conductor(), E.modulo(p)</code></td><td>Reduction: <code>{ prime, type, split, discriminantValuation, conductorExponent }</code>; the conductor when no additive prime is 2 or 3; the curve over \(\mathbb{F}_p\).</td></tr>
+<tr><td><code>E.naiveHeight(P), E.height(P, { doublings })</code></td><td>\(H(P)\); a proven enclosure <code>{ lower, upper, exact }</code> of the canonical height.</td></tr>
+<tr><td><code>E.rationalPoints(bound)</code></td><td>A search for points of small height.</td></tr>
+<tr><td><code>E.count({ method, log }), E.trace()</code></td><td>Over \(\mathbb{F}_p\): the number of points by <code>"naive"</code>, <code>"bsgs"</code>, <code>"schoof"</code> or <code>"auto"</code>; the trace of Frobenius.</td></tr>
+<tr><td><code>E.points(), E.liftX(x), E.randomPoint(seed), E.structure()</code></td><td>All points (p ≤ 10⁶); the points above an x; a reproducible point; the group as \(\mathbb{Z}/n_1 \times \mathbb{Z}/n_2\).</td></tr>
+<tr><td><code>E.divisionPolynomial(n)</code></td><td>Coefficients of the n-th division polynomial of a short curve over \(\mathbb{F}_p\).</td></tr>
+</table></div>
 <h2>p-adic numbers</h2>
 <div class="tablewrap"><table class="ref">
 <tr><th>Export</th><th>What it does</th></tr>
@@ -131,13 +150,14 @@
 <div class="tablewrap"><table class="ref">
 <tr><th>Export</th><th>What it does</th></tr>
 <tr><td><code>isqrt(n), iroot(n, k), gcd(a, b), lcm(a, b), egcd(a, b)</code></td><td>Integer roots, gcd and lcm, and Bézout's <code>{ g, x, y }</code>.</td></tr>
-<tr><td><code>NumberTheoryError</code></td><td>Thrown for refusals; <code>code</code> is one of "bad-argument", "too-large", "too-hard", "unproven", "unknown-valuation", "not-a-square", "diverges".</td></tr>
-<tr><td><code>plan</code></td><td>The phases still to come (4 to 7), each <code>{ phase, contents, estimate }</code>.</td></tr>
+<tr><td><code>NumberTheoryError</code></td><td>Thrown for refusals; <code>code</code> is one of "bad-argument", "too-large", "too-hard", "unproven", "unknown-valuation", "not-a-square", "diverges", "singular", "not-on-curve".</td></tr>
+<tr><td><code>plan</code></td><td>The phases still to come (5 to 7), each <code>{ phase, contents, estimate }</code>.</td></tr>
 </table></div>
 <template data-runbox>
 // a tour: one call from each section
 PRINT(provePrime(2n ** 89n - 1n).certificate.kind, formatFactors(factor(10n ** 18n + 1n)));
 PRINT(sigma(28), totient(1001), crt([1, 2, 3], [5, 7, 9]));
+PRINT(ellipticCurve([2, 3], { mod: 97 }).count(), ecm(2n ** 128n + 1n), ellipticCurve([0, 1]).torsion().structure);
 PRINT(jacobi(1001, 9907), twoSquaresAll(65), fourSquares(2026));
 PRINT(frobenius([6, 9, 20]), pellSolutions(2, 7).fundamental, classGroup(-3299).structure);
 padic(-1, 5n).sqrt().toString(16)

@@ -1,0 +1,94 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Elliptic curve certificates · RatMath Number Theory</title>
+<meta name="description" content="Elliptic curve primality proving in @ratmath/numtheory: the Goldwasser–Kilian theorem, curves with a known number of points by complex multiplication, Hilbert class polynomials, and certificates checked by an independent verifier.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&family=Space+Grotesk:wght@500;600;700&display=swap">
+<link rel="stylesheet" href="assets/style.css">
+<script type="module" src="assets/site.js"></script>
+</head>
+<body>
+<div class="shell">
+<aside></aside>
+<main>
+<article>
+<div class="eyebrow">Elliptic curve certificates</div>
+<h1>Elliptic curve certificates</h1>
+<p class="lede">A Pocklington certificate needs the factorisation of \(n - 1\), and for most large primes that is out of reach. An elliptic curve gives a second chance, and a third, and as many as needed: any curve modulo \(n\) whose number of points has a large prime factor will do. This is how primes of hundreds of digits are proven in practice.</p>
+
+<h2>The theorem</h2>
+<p>Let \(n\) be prime to 6, \(E\) a curve \(y^2 = x^3 + ax + b\) modulo \(n\), and \(P\) a point on it. Suppose \(m = kq\) with \(q\) prime and</p>
+\[ q > \left(n^{1/4} + 1\right)^2, \qquad m\cdot P = O, \qquad k\cdot P \ne O \ \text{(a finite point, with every division along the way possible)}. \]
+<p>Then \(n\) is prime (Goldwasser and Kilian, 1986). The reason is short. If \(n\) had a prime factor \(p \le \sqrt n\), then modulo \(p\) the point \(kP\) would have order exactly \(q\) in \(E(\mathbb{F}_p)\). But that group has at most \((\sqrt p + 1)^2 \le (n^{1/4} + 1)^2 &lt; q\) elements, by Hasse's theorem. So the certificate is the curve, the point, \(m\) and \(q\), together with a certificate for \(q\), which is about the size of \(n/k\): a chain that descends until Pocklington or trial division finishes it.</p>
+<pre><code>import { provePrime, verifyCertificate, isPrime } from "@ratmath/numtheory";
+
+const n = 10n ** 60n + 7n;
+const r = provePrime(n);
+r.certificate.kind;            // "elliptic"
+r.certificate.discriminant;    // -7
+r.certificate.m;               // 1000000000000000000000000000002000000000000000000000000000008n
+r.certificate.q;               // 26641539363749891267808119193147605196373n, a 41-digit prime
+r.certificate.certificate.kind;   // "pocklington": q − 1 could be factored far enough
+verifyCertificate(r.certificate); // { valid: true }
+
+provePrime(n, { elliptic: false }).reason;   // "only 55 of the 200 bits of n − 1 could be factored and certified (a third are needed)"
+isPrime(2n ** 255n - 19n);     // true: n − 1 = 2² · 3 · 65147 · (a 71-digit prime), and that prime is certified with curves</code></pre>
+
+<h2>Where the curve comes from</h2>
+<p>Goldwasser and Kilian picked random curves and counted their points with Schoof's algorithm, which is far too slow to do many times. Atkin and Morain turned it around: build a curve whose number of points is known in advance.</p>
+<p>If \(4n = t^2 + |D|v^2\) for a negative discriminant \(D\), then there are curves modulo \(n\) with exactly \(n + 1 - t\) and \(n + 1 + t\) points: those with <em>complex multiplication</em> by \(D\). Their j-invariants are the roots modulo \(n\) of the <strong>Hilbert class polynomial</strong> \(H_D\). For the example above, \(4n = (2\cdot10^{30})^2 + 7\cdot2^2\), so \(D = -7\) works with \(t = \pm2\cdot10^{30}\), and \(m = n + 1 + 2\cdot10^{30}\) happens to be \(2^3 \cdot 11 \cdot 29 \cdot 6091 \cdot 10343 \cdot 233466671\) times a prime. The search runs through discriminants in order, solves \(4n = t^2 + |D|v^2\) by Cornacchia's algorithm, and keeps a candidate \(m\) when small factors can be stripped from it to leave a large enough probable prime.</p>
+
+<h2>Class polynomials</h2>
+<pre><code>import { classPolynomial, classNumber } from "@ratmath/numtheory";
+
+classPolynomial(-7);      // [3375n, 1n]: x + 3375, so j = −3375 = −15³
+classPolynomial(-163);    // [262537412640768000n, 1n]: j = −640320³
+classPolynomial(-23);     // [12771880859375n, -5151296875n, 3491750n, 1n]
+classNumber(-23);         // 3n: the degree of H_D is the class number</code></pre>
+<p>\(H_D(x) = \prod (x - j(\tau))\), the product over the reduced forms \((a, b, c)\) of discriminant \(D\) (see <a href="quadratic-forms.html">Quadratic forms</a>) with \(\tau = (-b + \sqrt D)/2a\). The j-function is evaluated from its definition \(j = E_4^3/\Delta\) in fixed-point complex arithmetic with enough digits, and the product, which must have whole coefficients, is rounded and the rounding checked. The famous near-integer \(e^{\pi\sqrt{163}} = 262537412640768743.99999999999925\ldots\) is this in miniature: \(j(\tau) = 1/q + 744 + 196884q + \cdots\) is a whole number while \(q = -e^{-\pi\sqrt{163}}\) is tiny.</p>
+
+<h2>What has to be trusted</h2>
+<p>Very little. The class polynomial is computed numerically, square roots modulo \(n\) assume \(n\) is prime, and the search takes shortcuts. None of that matters for soundness: all of it only serves to <em>find</em> a curve and a point, and the certificate is then checked by <a href="primes.html">the independent verifier</a>, which knows nothing about complex multiplication. It checks that the point is on the curve, that the discriminant of the curve is a unit modulo \(n\), the size of \(q\), the certificate of \(q\), and the two multiplications. Its curve arithmetic uses plain affine coordinates and insists that every divisor is a unit modulo \(n\), so each step is a true group operation modulo every prime factor of \(n\) at once; a shortcut through projective coordinates would not have that property. A mistake in the search can only mean that no certificate is found.</p>
+<p>The tests attack the verifier directly: they build composite numbers \(n = p\,r\), curves and points whose orders modulo both primes are known, and offer every prime factor of the order as \(q\). All are rejected.</p>
+
+<h2>How far it goes</h2>
+<p>Discriminants up to 5000 with class number up to 12 are tried by default (options <code>maxDiscriminant</code>, <code>maxClassNumber</code>). Primes of 60 digits take a fraction of a second, 150 digits a couple of seconds, 230 digits under ten seconds. The search can fail, and then <code>provePrime</code> says so and <code>isPrime</code> refuses, as before.</p>
+<template data-runbox>
+// a chain of certificates, link by link
+const describe = (c) => {
+  const out = [];
+  while (c) {
+    out.push(`${c.kind} (${String(c.n).length} digits${c.kind === "elliptic" ? `, D = ${c.discriminant}` : ""})`);
+    c = c.kind === "elliptic" ? c.certificate : c.factors ? c.factors[c.factors.length - 1].certificate : null;
+  }
+  return out.join(" → ");
+};
+for (const n of [10n ** 60n + 7n, 2n ** 255n - 19n, nextPrime(10n ** 50n)]) {
+  const r = provePrime(n);
+  PRINT(String(n).length, "digits:", describe(r.certificate), verifyCertificate(r.certificate));
+}
+
+// the first link for 10^60 + 7, checked by hand: P on the curve, m·P = O on the curve mod n
+const c = provePrime(10n ** 60n + 7n).certificate;
+const E = ellipticCurve([c.a, c.b], { mod: c.n });
+const P = E.point(c.x, c.y);
+PRINT("m·P =", E.mul(c.m, P), " (m/q)·P is finite:", !E.mul(c.m / c.q, P).infinity);
+PRINT("t = n + 1 − m =", c.n + 1n - c.m, " and 4n − t² =", 4n * c.n - (c.n + 1n - c.m) ** 2n);
+
+// tamper with it
+PRINT(verifyCertificate({ ...c, x: c.x + 1n }));
+PRINT(verifyCertificate({ ...c, q: c.q + 2n }));
+
+// class polynomials: the degree is the class number
+for (const D of [-7, -15, -23, -47, -71]) PRINT(D, "h =", classNumber(D), classPolynomial(D));
+nextPrime(10n ** 80n) - 10n ** 80n
+</template>
+</article>
+</main>
+</div>
+</body>
+</html>

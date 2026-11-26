@@ -1,0 +1,123 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Elliptic curves · RatMath Number Theory</title>
+<meta name="description" content="Elliptic curves over the rationals in @ratmath/numtheory: the group law in exact arithmetic, torsion by Nagell–Lutz and Mazur, minimal models, reduction types, and proven enclosures of the canonical height.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&family=Space+Grotesk:wght@500;600;700&display=swap">
+<link rel="stylesheet" href="assets/style.css">
+<script type="module" src="assets/site.js"></script>
+</head>
+<body>
+<div class="shell">
+<aside></aside>
+<main>
+<article>
+<div class="eyebrow">Elliptic curves</div>
+<h1>Elliptic curves</h1>
+<p class="lede">A cubic curve whose points can be added. Over the rationals the sum of two points with fraction coordinates is again one, exactly, and the questions become: which points come back to zero, how fast do the others grow, and what does the curve look like modulo each prime.</p>
+
+<h2>A curve and its points</h2>
+<p>A curve is given by a Weierstrass equation \(y^2 + a_1xy + a_3y = x^3 + a_2x^2 + a_4x + a_6\), written <code>[a1, a2, a3, a4, a6]</code>, or by the short form \(y^2 = x^3 + ax + b\), written <code>[a, b]</code>. The discriminant must not be zero: a cubic with a node or a cusp is refused.</p>
+<pre><code>import { ellipticCurve } from "@ratmath/numtheory";
+
+const E = ellipticCurve([0, 0, 1, -1, 0]);
+String(E);            // "y² + y = x³ − x"
+E.discriminant;       // 37
+E.j;                  // 110592/37
+
+const P = E.point(0, 0);          // checked to lie on the curve
+E.add(P, P);                      // (1, 0)
+E.mul(5, P);                      // (1/4, -5/8)
+E.mul(7, P);                      // (-5/9, 8/27)
+E.add(E.mul(5, P), E.mul(-5, P)); // { infinity: true }, the zero of the group</code></pre>
+<p>Points are <code>{ x, y }</code> with Core <code>Rational</code> coordinates; the point at infinity, which is the zero of the group, is <code>E.infinity</code>. Wherever a point is expected, <code>[x, y]</code> works too.</p>
+
+<h2>The group law</h2>
+<p>A line meets a cubic in three points, counted properly. Declare that three points on a line add up to zero, with the point at infinity as zero. Then the negative of \((x, y)\) is the other point on the vertical line through it, \((x, -y - a_1x - a_3)\), and \(P + Q\) is the negative of the third point on the line through \(P\) and \(Q\) (the tangent line, when \(P = Q\)). With \(\lambda\) the slope of that line and \(\nu\) its intercept,</p>
+\[ x_3 = \lambda^2 + a_1\lambda - a_2 - x_1 - x_2, \qquad y_3 = -(\lambda + a_1)x_3 - \nu - a_3. \]
+<p>That this is associative is not obvious and is a theorem; the tests check it on thousands of triples. <code>mul(k, P)</code> uses doubling and adding, so the millionth multiple takes about forty steps, though its coordinates are enormous: the number of digits of \(kP\) grows like \(k^2\), which is what the <a href="#heights">height</a> measures.</p>
+
+<h2>Torsion</h2>
+<p>A point of finite order is a torsion point. Two theorems make the torsion of a curve over \(\mathbb{Q}\) computable. <strong>Nagell–Lutz</strong>: on a model \(y^2 = x^3 + Ax + B\) with whole \(A, B\), a torsion point has whole coordinates and either \(y = 0\) or \(y^2\) divides \(4A^3 + 27B^2\). <strong>Mazur</strong>: the torsion group is one of fifteen, \(\mathbb{Z}/n\) for \(n = 1, \dots, 10, 12\) or \(\mathbb{Z}/2 \times \mathbb{Z}/2n\) for \(n = 1, \dots, 4\); in particular no point has finite order above 12.</p>
+<pre><code>const T = ellipticCurve([1, 0, 1, -19, 26]);   // y² + xy + y = x³ − 19x + 26
+T.torsion().structure;    // [2, 6]: the group is Z/2 × Z/6
+T.torsion().points;       // O, (-5, 2), (-2, -7), (-2, 8), (1, -4), (1, 2), (7/4, -11/8), (3, -2), (4, -7), (4, 2), (13, -52), (13, 38)
+T.torsion().generators;   // [(-5, 2), (-2, 8)], of orders 2 and 6
+
+const S = ellipticCurve([-43, 166]);           // y² = x³ − 43x + 166
+S.order(S.point(3, 8));   // 7n
+E.order(P);               // Infinity: (0, 0) on y² + y = x³ − x never returns</code></pre>
+<p><code>torsion()</code> moves to a short integral model, lists the candidate \(y\) from the divisors of \(4A^3 + 27B^2\), finds the whole roots \(x\) of each cubic, and keeps a candidate only if one of its first twelve multiples is zero. Note \((7/4, -11/8)\) above: on the long model torsion points need not have whole coordinates; on the short model they do. The tests compare every answer with the curve modulo primes, since torsion embeds in \(E(\mathbb{F}_p)\) at each odd prime of good reduction.</p>
+
+<h2>Minimal models and reduction</h2>
+<p>The same curve has many equations: \(x = u^2x' + r,\ y = u^3y' + u^2sx' + t\) gives another, with discriminant divided by \(u^{12}\). Among the equations with whole coefficients there is one with the smallest discriminant, and it is unique once \(a_1, a_3 \in \{0, 1\}\) and \(a_2 \in \{-1, 0, 1\}\).</p>
+<pre><code>const M = ellipticCurve([-432, 8208]);     // y² = x³ − 432x + 8208
+M.discriminant;                            // -23944605696 = −2¹² · 3¹² · 11
+const min = M.minimalModel();
+String(min.curve);                         // "y² + y = x³ − x²"
+min.curve.discriminant;                    // -11
+min.u;                                     // 6
+min.to(M.point(-12, 108));                 // (0, 0): points are carried along</code></pre>
+<p>Modulo a prime \(p\), the minimal model is either still an elliptic curve (<em>good</em> reduction, when \(p\) does not divide the minimal discriminant), or it gets a node (<em>multiplicative</em> reduction) or a cusp (<em>additive</em>). A node is <em>split</em> when its two tangent directions are defined over \(\mathbb{F}_p\).</p>
+<pre><code>M.badPrimes();       // [11n]
+M.reduction(11);     // { prime: 11n, type: "multiplicative", split: true, discriminantValuation: 1, conductorExponent: 1 }
+M.conductor();       // 11n: this is the curve of smallest conductor
+E.reduction(37);     // multiplicative, split: false
+ellipticCurve([-1, 0]).reduction(2);   // additive; conductorExponent: null</code></pre>
+<p>The conductor multiplies \(p\) for each multiplicative prime and \(p^2\) for each additive prime \(p \ge 5\). At 2 and 3 an additive prime can have a larger exponent, which takes Tate's algorithm to find; that is not here, so the exponent is reported as <code>null</code> and <code>conductor()</code> refuses rather than guess. Kodaira symbols and Tamagawa numbers are likewise not computed.</p>
+<p>How the minimal model is found: at each prime the largest possible \(u\) is tried, and the candidate invariants \((c_4, c_6)\) either belong to an equation with whole coefficients, which is then written down and checked, or they do not. Nothing is taken from a table of conditions.</p>
+
+<h2 id="heights">Heights</h2>
+<p>The naive height of a point is \(H(P) = \max(|p|, |q|)\) for \(x(P) = p/q\). Doubling a point roughly raises \(H\) to the fourth power, and the <strong>canonical height</strong> makes that exact:</p>
+\[ \hat h(P) = \lim_{n \to \infty} \frac{\log H(2^nP)}{4^n}, \qquad \hat h(kP) = k^2\,\hat h(P), \qquad \hat h(P) = 0 \iff P \text{ is torsion}. \]
+<p>It is a quadratic form on the group, and it is how independence of points is measured. (This normalisation is the one used in the Birch and Swinnerton-Dyer conjecture and in the tables; Silverman's book uses half of it.)</p>
+<pre><code>E.naiveHeight(E.mul(7, P));         // 9n: x = -5/9
+E.height(P);                        // { lower: 0.05021…, upper: 0.05193…, exact: false }
+E.height(P, { doublings: 8 });      // { lower: 0.051052…, upper: 0.051160… }
+T.height(T.point(1, 2));            // { lower: 0, upper: 0, exact: true }: a torsion point</code></pre>
+<p>The bounds are Rationals and they are proved, for the curve at hand. On the short model \(y^2 = x^3 + Ax + B\), with \(x = p/q\),</p>
+\[ x(2Q) = \frac{\Phi(p, q)}{\Psi(p, q)}, \qquad \Phi = p^4 - 2Ap^2q^2 - 8Bpq^3 + A^2q^4, \quad \Psi = 4q(p^3 + Apq^2 + Bq^3). \]
+<p>So \(H(2Q) \le \kappa\,H(Q)^4\) with \(\kappa\) the larger coefficient sum. The other direction needs to know that \(\Phi\) and \(\Psi\) cannot both be small or share a large factor. Because they have no common root, there are cubic forms with \(F\Phi + G\Psi = c\,p^7\) and \(F'\Phi + G'\Psi = c'\,q^7\); the library finds them by solving an 8 by 8 linear system exactly. They show that \(\gcd(\Phi, \Psi)\) divides \(\operatorname{lcm}(c, c')\) and that \(\max(|\Phi|, |\Psi|) \ge \rho\,H(Q)^4\) for an explicit \(\rho\). Hence \(\log\rho \le \log H(2Q) - 4\log H(Q) \le \log\kappa\) for every point, and summing the geometric series,</p>
+\[ \tfrac13\log\rho \;\le\; \hat h(Q) - \log H(Q) \;\le\; \tfrac13\log\kappa. \]
+<p>Applied to \(Q = 2^nP\) and divided by \(4^n\), this encloses \(\hat h(P)\) in an interval whose width shrinks by 4 with each doubling. The logarithms of the large whole numbers are themselves enclosed between Rationals. For the point above, the known value is \(0.0511114082\ldots\), the regulator of this curve.</p>
+
+<h2>Searching for points, and what is not here</h2>
+<p><code>rationalPoints(bound)</code> lists the points whose x-coordinate has small height on the short model, by trying every candidate. It is a search: it shows points, and it proves nothing about the ones it did not reach. The rank of a curve, the number of independent points of infinite order, is not computed; no algorithm is known that always finds it.</p>
+<pre><code>E.rationalPoints(10);   // (-1, -1), (-1, 0), (0, -1), (0, 0), (1/4, -5/8), (1/4, -3/8), (1, -1), (1, 0), (2, -3), (2, 2), …</code></pre>
+<p>For curves over finite fields, see <a href="point-counting.html">Counting points</a>; for what curves do for factoring and primality, see <a href="ecm.html">The elliptic curve method</a> and <a href="elliptic-certificates.html">Elliptic curve certificates</a>.</p>
+<template data-runbox>
+// multiples of a point of infinite order: the digits grow like k²
+const E = ellipticCurve([0, 0, 1, -1, 0]);
+const P = E.point(0, 0);
+const show = (Q) => (Q.infinity ? "O" : `(${Q.x}, ${Q.y})`);
+for (const k of [1, 2, 3, 4, 5, 6, 7, 8, 16, 32]) {
+  const Q = E.mul(k, P);
+  PRINT(k, k <= 8 ? show(Q) : "", "digits of H:", String(E.naiveHeight(Q)).length);
+}
+const h = E.height(P, { doublings: 7 });
+PRINT("ĥ(P) between", h.lower.toNumber(), "and", h.upper.toNumber());
+
+// torsion of a few curves, and the same curves modulo small primes
+for (const cs of [[0, 1], [-1, 0], [-43, 166], [1, 0, 1, -19, 26], [1, 0, 0, -1070, 7812]]) {
+  const C = ellipticCurve(cs);
+  const T = C.torsion();
+  // torsion embeds in E(F_p) at every odd prime of good reduction, so its order divides each count
+  const good = [5n, 7n, 11n, 13n, 17n, 19n].filter((p) => !C.badPrimes().includes(p)).slice(0, 3);
+  PRINT(String(C), " torsion", T.structure, " points mod", good.join(", ") + ":", good.map((p) => C.modulo(p).count()).join(", "));
+}
+
+// a messy equation and its minimal model
+const M = ellipticCurve([-432, 8208]);
+const min = M.minimalModel();
+PRINT(String(M), "→", String(min.curve), "u =", min.u, " conductor", M.conductor());
+M.reduction(11)
+</template>
+</article>
+</main>
+</div>
+</body>
+</html>

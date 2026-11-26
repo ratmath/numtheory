@@ -18,7 +18,7 @@
 <article>
 <div class="eyebrow">Explore</div>
 <h1>Explore</h1>
-<p class="lede">Type a number and see what number theory says about it: its factorisation and the proof that the factors are prime, its divisors and their sums, how it splits into squares. Then try a modulus, a discriminant, and a p-adic expansion.</p>
+<p class="lede">Type a number and see what number theory says about it: its factorisation and the proof that the factors are prime, its divisors and their sums, how it splits into squares. Then try a modulus, a discriminant, an elliptic curve, and a p-adic expansion.</p>
 
 <h2>A number</h2>
 <div class="demo">
@@ -41,6 +41,13 @@
 </div>
 <p>The class group counts forms \(ax^2 + bxy + cy^2\) with \(b^2 - 4ac = D\) up to change of variables. For a positive non-square D the Pell line lists the first solutions of \(x^2 - Dy^2 = N\); for D ≡ 2, 3 mod 4 the forms of discriminant 4D are the relevant ones.</p>
 
+<h2>An elliptic curve</h2>
+<div class="demo">
+<div class="demo-row"><label for="ex-ec">coefficients</label><input id="ex-ec" class="text grow" value="0, 0, 1, -1, 0" spellcheck="false"><label for="ex-ecp">p</label><input id="ex-ecp" class="text" value="1000003" size="10" spellcheck="false"></div>
+<div id="ex-curve"></div>
+</div>
+<p>Two coefficients <em>a, b</em> for \(y^2 = x^3 + ax + b\), or five for the long form \(a_1, a_2, a_3, a_4, a_6\). The last lines reduce the curve modulo the prime p. Try <code>-43, 166</code>, <code>1, 0, 1, -19, 26</code> or <code>-432, 8208</code>.</p>
+
 <h2>A p-adic number</h2>
 <div class="demo">
 <div class="demo-row"><label for="ex-x">x</label><input id="ex-x" class="text" value="-1/3" size="12" spellcheck="false"><label for="ex-p">p</label><input id="ex-p" class="text" value="5" size="6" spellcheck="false"><label for="ex-k">digits</label><input id="ex-k" class="text" type="number" min="1" max="200" value="24" size="5"></div>
@@ -56,6 +63,8 @@ PRINT("as four squares:", fourSquares(n));
 PRINT("10 mod 13: order", order(10, 13), " (10/13) =", jacobi(10, 13), " 10x ≡ 4:", solveLinear(10, 4, 13).solutions);
 const G = classGroup(-84);
 PRINT("h(−84) =", G.h, G.forms.map(String), "structure", G.structure);
+const E = ellipticCurve([0, 0, 1, -1, 0]);
+PRINT(String(E), " conductor", E.conductor(), " torsion", E.torsion().structure, " #E(F_1000003) =", E.modulo(1000003).count());
 padic("-1/3", 5n).toString(24)
 </template>
 </article>
@@ -107,7 +116,7 @@ function number() {
     rows.push(line("primality", () => {
       if (n < 2n) return "neither prime nor composite";
       const r = N.provePrime(n, { budget: 1 << 14 });
-      if (r.prime && r.proven) return r.certificate.kind === "small" ? "prime (below 2³², by trial division)" : `prime, ${r.certificate.kind === "bls" ? "Brillhart–Lehmer–Selfridge" : "Pocklington"} certificate: ${JSON.stringify(N.verifyCertificate(r.certificate))}`;
+      if (r.prime && r.proven) return r.certificate.kind === "small" ? "prime (below 2³², by trial division)" : `prime, ${{ bls: "Brillhart–Lehmer–Selfridge", pocklington: "Pocklington", elliptic: "elliptic curve" }[r.certificate.kind]} certificate: ${JSON.stringify(N.verifyCertificate(r.certificate))}`;
       if (r.prime) return "probably prime (Baillie–PSW); " + r.reason;
       return r.factor ? `composite: ${r.factor} divides it` : r.witness ? `composite: ${r.witness} is a Miller–Rabin witness` : r.reason;
     }));
@@ -228,15 +237,54 @@ function padic() {
   rows.push(line("log x", () => N.padic(xs, p).log().toString(k)));
   $("ex-padic").replaceChildren(h("dl", { class: "kv out" }, rows));
 }
+function curve() {
+  const rows = [];
+  let E;
+  try {
+    E = N.ellipticCurve($("ex-ec").value.split(/[,\s]+/).filter(Boolean));
+  } catch (e) {
+    $("ex-curve").replaceChildren(h("div", { class: "out err" }, e.message));
+    return;
+  }
+  const pt = (P) => (P.infinity ? "O" : `(${P.x}, ${P.y})`);
+  rows.push(line("equation", () => String(E)));
+  rows.push(line("discriminant, j", () => `${E.discriminant}, ${E.j}`));
+  rows.push(line("minimal model", () => {
+    const m = E.minimalModel();
+    return `${m.curve}   (discriminant ${m.curve.discriminant}, u = ${m.u})`;
+  }));
+  rows.push(line("bad primes", () => E.badPrimes().map((q) => {
+    const r = E.reduction(q);
+    return `${q}: ${r.type}${r.type === "multiplicative" ? (r.split ? ", split" : ", non-split") : ""}`;
+  }).join("; ") || "none"));
+  rows.push(line("conductor", () => String(E.conductor())));
+  rows.push(line("torsion", () => {
+    const T = E.torsion();
+    return `${T.structure.map((n) => `Z/${n}`).join(" × ")}: ${list(T.points.map(pt), 16)}`;
+  }));
+  rows.push(line("points of small height", () => list(E.rationalPoints(60).map(pt), 10) || "none found"));
+  let Ep = null;
+  rows.push(line("modulo p", () => {
+    Ep = E.modulo(big("ex-ecp"));
+    return `${Ep.count()} points, trace ${Ep.trace()}`;
+  }));
+  rows.push(line("group mod p", () => {
+    if (!Ep) throw new Error("no reduction at this p");
+    return Ep.structure().structure.map((n) => `Z/${n}`).join(" × ");
+  }));
+  $("ex-curve").replaceChildren(h("dl", { class: "kv out" }, rows));
+}
 $("ex-n-chips").append(...["1105", "561", "8128", "220", "2147483647", "600851475143", "1000000016000000063", "170141183460469231731687303715884105727"].map((x) => h("button", { class: "chipbtn", onclick: () => { $("ex-n").value = x; number(); } }, x.length > 14 ? x.slice(0, 6) + "…" : x)));
 for (const id of ["ex-n"]) $(id).addEventListener("input", number);
 for (const id of ["ex-a", "ex-b", "ex-m"]) $(id).addEventListener("input", modular);
 for (const id of ["ex-d", "ex-pn"]) $(id).addEventListener("input", disc);
 for (const id of ["ex-x", "ex-p", "ex-k"]) $(id).addEventListener("input", padic);
+for (const id of ["ex-ec", "ex-ecp"]) $(id).addEventListener("input", curve);
 number();
 modular();
 disc();
 padic();
+curve();
 </script>
 </body>
 </html>

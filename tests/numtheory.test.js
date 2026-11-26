@@ -71,10 +71,12 @@ describe("primes", () => {
     }
   });
   test("an unproven prime says so", () => {
-    const r = N.provePrime(2n ** 255n - 19n, { budget: 1 << 12 });
+    // n − 1 alone cannot certify 2^255 − 19 on a small budget; the elliptic curve certificates can
+    const r = N.provePrime(2n ** 255n - 19n, { budget: 1 << 12, elliptic: false });
     expect(r.prime).toBe(true);
     expect(r.proven).toBe(false);
-    expect(() => N.isPrime(2n ** 255n - 19n)).toThrow(/no certificate/);
+    expect(r.reason).toMatch(/bits of n − 1/);
+    expect(N.isPrime(2n ** 255n - 19n)).toBe(true);
     expect(N.isProbablePrime(2n ** 255n - 19n)).toBe(true);
   });
   test("factoring", () => {

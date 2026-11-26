@@ -9,6 +9,8 @@
 
 import { isProbablePrime } from "@ratmath/algebraic";
 import { abs, big, gcd, iroot, isqrt, mod, powmod, refuse } from "./int.js";
+import { ecm } from "./ecm.js";
+import { ecppStep } from "./ecpp.js";
 
 export const PROVEN_BELOW = 1n << 64n;
 const SIEVE_LIMIT = 100000000;
@@ -201,11 +203,13 @@ export function trialDivide(n, limit = 100000) {
 
 /**
  * The prime factorisation of n ≠ 0 as [{ prime, exponent, proven }] in
- * increasing order (the sign is dropped). Trial division, then Pollard's rho.
- * `proven` is true for every factor below 2^64 and for larger factors with a
- * certificate; option prove: false skips the certificates.
+ * increasing order (the sign is dropped). Trial division, then Pollard's rho,
+ * p − 1 and the elliptic curve method with growing bounds. `proven` is true
+ * for every factor below 2^64 and for larger factors with a certificate;
+ * option prove: false skips the certificates, and effort (default 1) scales
+ * the number of curves tried before giving up.
  */
-export function factor(n, { prove = true } = {}) {
+export function factor(n, { prove = true, effort = 1 } = {}) {
   const m = big(n, "n");
   if (m === 0n) refuse("bad-argument", "0 has no factorisation");
   const { found, rest } = trialDivide(m);
@@ -222,9 +226,13 @@ export function factor(n, { prove = true } = {}) {
       stack.push(r, r);
       continue;
     }
-    let d = pollardRho(x, { steps: 1 << 24 });
-    if (!d) d = pollardPm1(x, 1000000);
-    if (!d) refuse("too-hard", `could not split ${x} with rho or p − 1; it has no small factors`);
+    let d = pollardRho(x, { steps: 1 << 19 });
+    if (!d) d = pollardPm1(x, 100000);
+    for (const [B1, curves] of ECM_LEVELS) {
+      if (d) break;
+      d = ecm(x, { B1, curves: Math.ceil(curves * effort) });
+    }
+    if (!d) refuse("too-hard", `could not split ${x} with rho, p − 1 or the elliptic curve method; its prime factors are probably above 25 digits`);
     stack.push(d, x / d);
   }
   return [...found]
@@ -236,6 +244,8 @@ export function formatFactors(fs) {
   if (!fs.length) return "1";
   return fs.map(({ prime, exponent }) => (exponent === 1 ? `${prime}` : `${prime}^${exponent}`)).join(" · ");
 }
+
+const ECM_LEVELS = [[2000, 30], [11000, 90], [50000, 120]];
 
 // ---- certificates ----
 
@@ -270,9 +280,14 @@ function partialFactor(m, budget) {
  * The certificate is Pocklington's (n − 1 factored past √n) or
  * Brillhart–Lehmer–Selfridge's (past the cube root), with each prime factor
  * of n − 1 certified in turn; small primes are certified by trial division.
- * Option budget: Pollard rho steps per factor of n − 1.
+ * When n − 1 cannot be factored far enough, an elliptic curve certificate is
+ * sought instead (Atkin and Morain): a curve mod n with a point whose order
+ * is a prime q large enough to rule out any factor of n, and q is certified
+ * in turn. Options: budget (Pollard rho steps per factor of n − 1),
+ * elliptic: false to use n − 1 only, maxDiscriminant and maxClassNumber for
+ * the curves tried.
  */
-export function provePrime(n, { budget = 1 << 18 } = {}) {
+export function provePrime(n, { budget = 1 << 18, elliptic = true, maxDiscriminant = 5000, maxClassNumber = 12 } = {}) {
   const N = big(n, "n");
   if (N < 2n) return { n: N, prime: false, proven: true, reason: "below 2" };
   const td = trialDivide(N, 1000);
@@ -288,7 +303,8 @@ export function provePrime(n, { budget = 1 << 18 } = {}) {
     if (d) return { n: N, prime: false, proven: true, factor: d };
     return { n: N, prime: false, proven: false, reason: "fails Baillie–PSW, but no Miller–Rabin witness below 200 and no factor was found" };
   }
-  const cert = certify(N, budget, 0);
+  const state = elliptic ? { steps: 4000, backtrack: 4, rhoBudget: 1 << 12, maxDiscriminant, maxClassNumber } : null;
+  const cert = certify(N, budget, 0, state);
   if (cert.certificate) return { n: N, prime: true, proven: true, certificate: cert.certificate };
   if (cert.witness) return { n: N, prime: false, proven: true, witness: cert.witness };
   if (cert.factor) return { n: N, prime: false, proven: true, factor: cert.factor };
@@ -319,16 +335,25 @@ export function millerRabinWitness(n, a) {
   return true;
 }
 
-function certify(n, budget, depth) {
+/** A certificate for the probable prime n: by n − 1 first, then by an elliptic curve when `state` allows it. */
+function certify(n, budget, depth, state) {
   if (n < SMALL) return isProbablePrime(n) ? { certificate: { n, kind: "small" } } : { reason: `${n} is not prime` };
-  if (depth > 40) return { reason: "the chain of certificates is too deep" };
+  if (depth > 1500) return { reason: "the chain of certificates is too deep" };
+  const r = certifyMinusOne(n, budget, depth, state);
+  if (r.certificate || r.witness || r.factor || !state) return r;
+  // inside an elliptic chain the n − 1 attempts get a small budget: most of them fail
+  const e = ecppStep(n, { certify: (q) => certify(q, Math.min(budget, 1 << 12), depth + 1, state), partialFactor, state });
+  if (e.certificate || e.factor) return e;
+  return { reason: `${r.reason}; ${e.reason}` };
+}
+function certifyMinusOne(n, budget, depth, state) {
   const m = n - 1n;
   const { primes: qs } = partialFactor(m, budget);
   qs.sort((a, b) => (a[0] < b[0] ? -1 : 1));
   const usable = [];
   let F = 1n;
   for (const [q, e] of qs) {
-    const sub = certify(q, budget, depth + 1);
+    const sub = certify(q, budget, depth + 1, state);
     if (!sub.certificate) continue;
     // a base for q: a^(n−1) ≡ 1 and gcd(a^((n−1)/q) − 1, n) = 1
     let base = null;

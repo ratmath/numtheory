@@ -1,7 +1,27 @@
 # Changelog
 
-## Unreleased
+## 0.2.0 (unreleased)
 
+Phase 4 of the roadmap: elliptic curves.
+
+- `ellipticCurve` over Q and over F_p, in short or long Weierstrass form: the
+  group law, orders of points, and `toString`.
+- Over Q: `torsion` (Nagell–Lutz, checked against Mazur's list), `shortModel`,
+  `minimalModel` with its change of variables, `badPrimes`, `reduction`
+  (good, split or non-split multiplicative, additive), `conductor` (refused
+  when the reduction at 2 or 3 is additive), `rationalPoints`, and `height`:
+  an enclosure of the canonical height with bounds proved for the curve.
+- Over F_p: `count` by a character sum, by baby steps and giant steps with
+  Mestre's twist, and by Schoof's algorithm; `trace`, `points`, `liftX`,
+  `structure`, `divisionPolynomial`.
+- `ecm` and `ecmCurve`: Lenstra's elliptic curve method (Montgomery curves,
+  Suyama's parametrisation, two stages). `factor` uses it after rho and
+  p − 1, and now factors F₇ = 2^128 + 1.
+- Elliptic curve primality certificates (Atkin–Morain): `provePrime` builds a
+  curve by complex multiplication when n − 1 cannot be factored far enough,
+  and `verifyCertificate` checks the new `"elliptic"` kind independently.
+  `classPolynomial` gives Hilbert class polynomials.
+- `isqrt` no longer fails above 2^1024.
 - `@ratmath/core` is now a peer dependency (`>=0.10.0 <0.12.0`): the package
   uses the program's own copy of Core instead of bringing its own, so Core 0.11
   works and there is never a second copy whose `Rational` is not the same class.
