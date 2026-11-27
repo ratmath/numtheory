@@ -1,0 +1,2332 @@
+# @ratmath/numtheory 0.3.0: full documentation
+
+> Number theory for RatMath: primes with certificates, congruences, Diophantine equations, p-adic numbers, elliptic curves, number fields with proven class groups and units, and zeta and L values. From https://ratmath.com/numtheory/, commit 74c2c8b. Each page ends with a runnable example; in it, PRINT(...) prints.
+
+
+---
+
+Page: https://ratmath.com/numtheory/index.html
+
+@ratmath/numtheory
+
+## Number theory with proofs attached
+
+From a first course to algebraic number theory: primes that come with a certificate, congruences and reciprocity, Diophantine equations, p-adic numbers, elliptic curves, and the arithmetic of number fields.
+
+### What is here
+
+Every phase of the plan is built: primes with certificates, factoring, arithmetic functions, congruences, reciprocity and sums of squares; linear and Pell equations, continued fractions and binary quadratic forms; p-adic numbers; elliptic curves over the rationals and over finite fields, with the factoring method and the primality certificates built on them; rings of integers of number fields, prime ideals, class groups and unit groups; and the analytic side, with exact prime counts, Dirichlet characters, and values of zeta and L functions.
+
+### A first program
+
+```js
+import { isPrime, provePrime, verifyCertificate, factor, formatFactors, jacobiSteps, twoSquaresAll, pellSolutions, classGroup, padic, ellipticCurve } from "@ratmath/numtheory";
+
+isPrime(2n ** 61n - 1n);                     // true, proven: Baillie–PSW has no exceptions below 2^64
+const r = provePrime(2n ** 127n - 1n);       // a Pocklington certificate, a tree of smaller primes
+verifyCertificate(r.certificate);            // { valid: true }, by a checker that shares no code with the search
+formatFactors(factor(2n ** 64n + 1n));       // "274177 · 67280421310721"
+
+jacobiSteps(1001, 9907).value;               // -1, with every reciprocity step written out
+twoSquaresAll(325);                          // [[18n, 1n], [17n, 6n], [15n, 10n]]
+pellSolutions(2, 7).solutions(4);            // [[3n, 1n], [5n, 3n], [13n, 9n], [27n, 19n]]
+classGroup(-3299).structure;                 // [3n, 9n]: the class group is C3 × C9
+padic(-1, 5n).sqrt().toString(12);           // "…223032431212": i in the 5-adic integers
+
+formatFactors(factor(2n ** 128n + 1n));      // "59649589127497217 · 5704689200685129054721", by the elliptic curve method
+isPrime(10n ** 60n + 7n);                    // true: an elliptic curve certificate, checked by the same verifier
+ellipticCurve([-43, 166]).torsion().structure;   // [7]: y² = x³ − 43x + 166 has a rational point of order 7
+
+ringOfIntegers([-8n, -2n, -1n, 1n]).describePrime(2).primes.length;   // 3: in Dedekind's cubic, 2 splits completely
+String(idealClassGroup([-65n, 0n, 0n, 1n]));  // "class group of Q(α), α a root of x³ − 65: C3 × C6, h = 18", proven
+unitGroup([-2n, 0n, 0n, 1n]).fundamentalUnits;   // [1 + α + α²]: the fundamental unit of Q(∛2), proven fundamental
+primePi(10n ** 12n);                         // 37607912018n, by Meissel's formula
+zetaValue(3).compactedDecimalInterval();     // "1.202056903159594285[38:41]": an interval that contains ζ(3)
+lValueExact(kroneckerCharacter(-23), 0);     // 3: the class number of Q(√−23), as an L-value
+```
+
+### Four ideas
+
+A proof, or a refusal. "Prime" means proven: below 2⁶⁴ by a test known to have no exceptions there, above it by a certificate (from the factors of n − 1, or from an elliptic curve) that an independent verifier checks. When no certificate can be found, `isPrime` refuses and says why, rather than guessing. A composite comes with a factor or a witness. See [Primes and certificates](https://ratmath.com/numtheory/primes.html).
+
+Every "no" has a reason. A congruence with no solution names the gcd that blocks it, a number that is not a sum of two squares names the prime, two forms that are not equivalent name their different reduced forms, and an equivalence comes with the matrix that proves it.
+
+Certified without hypotheses. Class groups and unit groups are usually computed fast under the generalised Riemann hypothesis and checked separately, if at all. Here the check is part of the answer: Minkowski's bound for the generators, and a saturation argument with a proven lower bound on regulators for the relations. Values of zeta and L functions come as intervals with rational endpoints. See [Class groups](https://ratmath.com/numtheory/class-groups.html) and [Zeta and L values](https://ratmath.com/numtheory/l-values.html).
+
+Exact at any size, lazily where it must be. Everything is BigInt and Core Rational arithmetic. p-adic numbers have infinitely many digits, so they are rules that compute as many as asked, exactly; what digits alone cannot decide, such as whether a number is exactly zero, is reported as unknown. See [p-adic numbers](https://ratmath.com/numtheory/padic.html).
+
+### The plan, completed
+
+From the [library roadmap](https://github.com/ratmath/ratmath/blob/main/docs/design/library-roadmap.md#4-a-number-theory-package-ratmathnumtheory).
+
+| Phase | Contents | |
+
+| 1 | Primes with certificates, arithmetic functions, congruences, reciprocity, sums of squares, re-exports | built |
+
+| 2 | Diophantine equations and binary quadratic forms | built |
+
+| 3 | p-adic numbers | built |
+
+| 4 | Elliptic curves; ECM and curve-based certificates | built |
+
+| 5 | Integral bases, discriminants, prime ideal factorisation | built |
+
+| 6 | Class groups and unit groups | built |
+
+| 7 | π(x), characters, ζ and L values | built |
+
+It builds on Core and algebraic (the modular kernel and the algebraic numbers that continued fractions expand); continued fractions, Pell's equation and the Chinese remainder theorem moved here from algebraic.
+
+### Try it
+
+```js
+// primes, proofs and a little of everything
+const p = provePrime(2n ** 107n - 1n);
+PRINT("2^107 − 1:", p.certificate.kind, verifyCertificate(p.certificate));
+PRINT("F₆ =", formatFactors(factor(2n ** 64n + 1n)));
+PRINT("1105 as two squares:", twoSquaresAll(1105).map(([a, b]) => `${a}² + ${b}²`).join(", "));
+PRINT("x² − 2y² = 7:", pellSolutions(2, 7).solutions(5));
+PRINT("h(−3299) =", classNumber(-3299), "structure", classGroup(-3299).structure);
+PRINT("Q(∛65):", String(idealClassGroup([-65n, 0n, 0n, 1n])));
+PRINT("π(10¹⁰) =", primePi(10n ** 10n), "  ζ(3) ∈", zetaValue(3).compactedDecimalInterval());
+padic("1/3", 5n).toString(16)
+```
+
+---
+
+Page: https://ratmath.com/numtheory/reference.html
+
+Reference
+
+## Everything in the library
+
+Every export of `@ratmath/numtheory`. Whole-number arguments may be numbers, `BigInt`s, digit strings or Core `Rational`s with denominator 1; a JavaScript number that is not whole is refused. Results are `BigInt`s, except symbols (−1, 0, 1) and valuations, which are plain numbers. Refusals throw a `NumberTheoryError` whose `code` says why.
+
+### Primes and certificates
+
+| Export | What it does |
+
+| primes(limit) | The primes up to the limit (at most 10⁷), by the sieve of Eratosthenes. |
+
+| primePi(x), nthPrime(k) | π(x) exactly, up to 10¹² (a sieve below 10⁷, Meissel's formula above); the k-th prime. |
+
+| isPrime(n) | Proven below 2⁶⁴ (Baillie–PSW); above, by a certificate, or throws "unproven". |
+
+| isProbablePrime(n) | Baillie–PSW alone: fast, not a proof above 2⁶⁴. |
+
+| nextPrime(n), prevPrime(n), primesBetween(a, b) | Neighbouring primes; the primes in a window (segmented sieve, b
+| Export | What it does |
+
+| factor(n, { prove, effort }) | [{ prime, exponent, proven }], increasing: trial division, Pollard rho, p − 1, then the elliptic curve method. Refuses with "too-hard" when the factors are out of reach; effort scales the number of curves. |
+
+| ecm(n, { B1, B2, curves, sigma, details }) | The elliptic curve method: a proper factor or null; with details, { factor, stage, sigma, B1, B2 }. |
+
+| ecmCurve(n, sigma, { B1, B2 }) | One Suyama curve, as a report. |
+
+| formatFactors(fs) | "2^3 · 3 · 5^2". |
+
+| trialDivide(n, limit) | { found: Map(prime → exponent), rest }. |
+
+| pollardRho(n, { steps, seed }) | A nontrivial factor by Brent's rho, or null. |
+
+| pollardPm1(n, bound) | A factor p with p − 1 smooth to the bound, or null. |
+
+| factorInteger, modPow, modInverse, multiplicativeOrder, primitiveRoot, discreteLogMod, sqrtMod, lll, recognize | Re-exported from @ratmath/algebraic, which keeps the modular kernel for its finite fields. |
+
+### Arithmetic functions
+
+| Export | What it does |
+
+| divisors(n) | The positive divisors, increasing. |
+
+| sigma(n, k), tau(n) | σk​(n)=∑d∣n​dk (k = 1 by default); the number of divisors. |
+
+| totient(n), jordan(n, k), carmichael(n) | Euler's φ, Jordan's Jk​, Carmichael's λ. |
+
+| mobius(n), liouville(n) | μ(n) and λ(n)=(−1)Ω(n). |
+
+| omega(n), bigOmega(n), radical(n), isSquarefree(n) | Distinct primes, primes with multiplicity, their product, square-freeness. |
+
+| aliquotSum(n), classify(n), isPerfect(n) | s(n)=σ(n)−n; "perfect", "abundant" or "deficient". |
+
+| aliquotSequence(n, { steps, max }) | { terms, ending }: "terminates", "perfect", "amicable", "cycle of length k" or "unfinished". |
+
+| amicablePairs(limit), perfectNumbers(count), lucasLehmer(p) | Amicable pairs up to the limit; even perfect numbers; the Lucas–Lehmer test of 2ᵖ − 1. |
+
+| dirichlet(f, g), mobiusInversion(F) | Dirichlet convolution; f=F∗μ. |
+
+| unit, one, id | ε, the constant 1, the identity: building blocks for convolutions. |
+
+| isMultiplicative(f, limit) | Checks f(mn)=f(m)f(n) on coprime pairs up to the limit (a check, not a proof). |
+
+### Congruences
+
+| Export | What it does |
+
+| solveLinear(a, b, m) | Every x mod m with ax≡b: { solutions, modulus, g, reduced }, or no solutions with the reason. |
+
+| crt(residues, moduli) | The Chinese remainder theorem for any moduli: { x, modulus } or null. |
+
+| solveLinearSystem([[a, b, m], …]) | Each ai​x≡bi​(modmi​) reduced, then combined. |
+
+| polyMod(poly, x, m) | An integer polynomial (constant first) at x, mod m. |
+
+| hensel(poly, r, p, k) | Lifts a simple root mod p to the root mod pk. |
+
+| rootsMod(poly, m) | Every root mod m: prime powers by lifting, combined by CRT. |
+
+| hasPrimitiveRoot(n), primitiveRootMod(n), order(a, n) | Gauss's condition; the least primitive root or null; the multiplicative order. |
+
+| discreteLog(g, h, n) | The least x with gx≡h, or null (baby-step giant-step). |
+
+| valuation(n, p) | vp​(n); Infinity for 0. |
+
+### Reciprocity
+
+| Export | What it does |
+
+| legendre(a, p), jacobi(a, n), kronecker(a, n) | The quadratic symbols, as −1, 0 or 1. |
+
+| jacobiSteps(a, n) | { value, steps }: the reciprocity computation, one line per step. |
+
+| eulerCriterion(a, p), gaussLemma(a, p) | { power, value }; { value, mu, large }. |
+
+| quadraticResidues(n), sqrtsMod(a, n) | The squares mod n; every square root of a mod n. |
+
+### Sums of squares
+
+| Export | What it does |
+
+| primeAsTwoSquares(p) | p ≡ 1 (mod 4) as a2+b2, by Euclid's algorithm on p and a square root of −1 (Brillhart). |
+
+| twoSquaresAll(n), twoSquares(n), twoSquaresReason(n) | Every a2+b2=n with a≥b≥0 (Gaussian integers); one; why or why not. |
+
+| r2(n), r4(n), rk(n, k) | Representations counted with signs and order: Jacobi's formulas, and the theta series for any k ≤ 12. |
+
+| threeSquares(n), fourSquares(n) | Three squares unless n=4a(8b+7) (then null); four always. |
+
+| pythagoreanTriples(limit) | Primitive triples with c ≤ limit, by Euclid's formula. |
+
+| triplesWithHypotenuse(c), triplesWithLeg(a) | Every triple, primitive or not, with that hypotenuse or leg. |
+
+### Diophantine equations
+
+| Export | What it does |
+
+| linearDiophantine(coefficients, c) | { solvable, g, particular, basis }: every solution is the particular one plus an integer combination of the basis. |
+
+| nonNegativeSolutions(a, b, c) | The solutions of ax + by = c in non-negative integers. |
+
+| frobenius(coins), coinWays(amount, coins) | The largest unpayable amount; the number of ways to pay. |
+
+| pellSolutions(D, N), normEquation(D, N) | x2−Dy2=N: { kind: "infinite", unit, fundamental, solutions(count) } or { kind: "finite", solutions }. |
+
+| egyptianGreedy(q), egyptianShortest(q, options) | Distinct unit fractions: greedy, or a shortest expansion by search. |
+
+### Continued fractions
+
+| Export | What it does |
+
+| continuedFraction(x, terms) | The terms of a rational or real algebraic number, exactly. |
+
+| convergents(terms) | The convergents as Core Rationals. |
+
+| fromContinuedFraction(terms, period) | The number [a₀; a₁, …] or [preperiod; period repeating], as an AlgebraicReal. |
+
+| periodicContinuedFraction(x) | { preperiod, period } of a quadratic irrational. |
+
+| pell(D), fundamentalUnit(d), fromQuadratic(p, q, d, r) | The least solution of x2−Dy2=±1; the fundamental unit of Q(d​); (p+qd​)/r as an AlgebraicReal. |
+
+### Binary quadratic forms
+
+| Export | What it does |
+
+| form(a, b, c), new Form(a, b, c) | ax2+bxy+cy2: discriminant, at(x, y), transform(M), reduce() → { form, matrix }, cycle(), isReduced(), isPrimitive(). |
+
+| equivalent(f, g) | { equivalent: true, matrix } with f ∘ matrix = g, or false with the reason. |
+
+| compose(f, g), principalForm(D), inverseForm(f) | Gauss composition (reduced); the identity class; the inverse class. |
+
+| reducedForms(D), classNumber(D) | One reduced form per class; h(D), the narrow one for D > 0. |
+
+| classGroup(D) | { D, h, forms, identity, classOf, compose, inverse, order, structure }; structure lists the invariant factors. |
+
+| representations(f, n), represent(f, n) | Every (x, y) with f(x, y) = n for definite f; one proper representation for any D, or null. |
+
+### Elliptic curves
+
+| Export | What it does |
+
+| ellipticCurve([a, b]), ellipticCurve([a1, a2, a3, a4, a6]) | A curve over Q; with { mod: p }, over Fp​. An EllipticCurve, with a1 … a6, b2 … b8, c4, c6, discriminant, j, modulus, coefficients, infinity. |
+
+| E.point(x, y), E.has(P), E.equal(P, Q) | A checked point { x, y }; membership; equality. |
+
+| E.add(P, Q), E.sub(P, Q), E.neg(P), E.double(P), E.mul(k, P) | The group law. |
+
+| E.order(P) | A BigInt; over Q, Infinity for a point of infinite order. |
+
+| E.torsion() | Over Q: { order, structure, points, generators }. |
+
+| E.shortModel(), E.minimalModel() | { curve, to(P), from(P), … }: a short integral model; the global minimal model with its change of variables u, r, s, t. |
+
+| E.badPrimes(), E.reduction(p), E.conductor(), E.modulo(p) | Reduction: { prime, type, split, discriminantValuation, conductorExponent }; the conductor when no additive prime is 2 or 3; the curve over Fp​. |
+
+| E.naiveHeight(P), E.height(P, { doublings }) | H(P); a proven enclosure { lower, upper, exact } of the canonical height. |
+
+| E.rationalPoints(bound) | A search for points of small height. |
+
+| E.count({ method, log }), E.trace() | Over Fp​: the number of points by "naive", "bsgs", "schoof" or "auto"; the trace of Frobenius. |
+
+| E.points(), E.liftX(x), E.randomPoint(seed), E.structure() | All points (p ≤ 10⁶); the points above an x; a reproducible point; the group as Z/n1​×Z/n2​. |
+
+| E.divisionPolynomial(n) | Coefficients of the n-th division polynomial of a short curve over Fp​. |
+
+### p-adic numbers
+
+| Export | What it does |
+
+| padic(x, p) | A p-adic number from a whole number, fraction text, Rational or another p-adic. |
+
+| Padic | approx(N), valuation(), norm(), digits(k), toString(k), mod(N), add, sub, mul, div, inv, pow, shift, sqrt, isSquare, exp, log, equalsTo(y, N). Lazy and exact; an undecidable valuation throws "unknown-valuation". |
+
+| henselRoot(coefficients, r0, p) | The root of a polynomial starting at r0, by Newton's method. |
+
+| teichmuller(a, p) | The (p − 1)-th root of unity ≡ a (mod p). |
+
+| expansion(x, p) | { valuation, preperiod, period } of a rational's eventually periodic digits. |
+
+| padicValuation(x, p), padicNorm(x, p) | vp​(x) and ∣x∣p​ of a rational. |
+
+### Number fields
+
+| Export | What it does |
+
+| NumberField, NumberFieldElement | Re-exported from @ratmath/algebraic. Wherever a field is expected, the coefficients of an irreducible polynomial (constant first) work too. |
+
+| ringOfIntegers(K) | The ring of integers, an Order, by the Round 2 algorithm; cached on the field. |
+
+| Order | basis, discriminant, index, polyDiscriminant, signature, steps, traceMatrix, ramifiedPrimes, coordinates(x), element(coords), contains(x), primesAbove(p), describePrime(p), ideal(...generators), unitIdeal. |
+
+| integralBasis(K), fieldDiscriminant(K), primeDecomposition(K, p) | Shortcuts for the basis, the discriminant and primesAbove. |
+
+| PrimeIdeal | p, e, f, norm, generators, valuation(x) of an element, ideal or prime, toIdeal(), equals. |
+
+| Ideal | A fractional ideal: norm, basis, minimum, isIntegral, isOne, isPrime, mul, add, div, pow, inverse, contains(x), equals, factor() as [{ prime, exponent }]. |
+
+| idealClassGroup(K, options) | A ClassGroup: h, structure, generators, classOf(I), orderOf(I), isPrincipal(I) as { principal, generator }, proven, certificate, minkowskiBound, factorBase. Options certify, maxBound, maxIndexPrime, budget, rounds. |
+
+| unitGroup(K, options) | A UnitGroup: rank, torsionOrder, rootOfUnity, fundamentalUnits, regulator, isUnit(x), exponents(u) as { torsion, exponents }, proven, certificate. |
+
+| fieldClassNumber(K), regulator(K), minkowskiBound(K) | The class number, the regulator (a double), and the floor of Minkowski's bound. |
+
+| formToIdeal(f, K) | The ideal aZ+2−b+D​​Z of the quadratic field of discriminant D for a form (a, b, c). |
+
+### Counting primes, characters, zeta and L values
+
+| Export | What it does |
+
+| meissel(x) | { pi, y, a, phi, P2 }: π(x)=φ(x,a)+a−1−P2​ with a=π(3x​), for x ≤ 10¹². |
+
+| legendrePhi(x, a) | How many n ≤ x have no prime factor among the first a primes. |
+
+| dirichletCharacter(q, m) | The character χq​(m,⋅) in Conrey's numbering, a DirichletCharacter. |
+
+| DirichletCharacter | modulus, number, order, conductor, isPrimitive, isPrincipal, isReal, isEven, parity, exponent(n) (the fraction t with χ(n)=e2πit, or null), value(n), at(n) for real characters, exponents(), primitive(), induce(modulus), mul, pow, conjugate, gaussSum(). |
+
+| dirichletGroup(q) | { modulus, order, characters, principal, primitive, real, structure, orthogonality(a, b) }, for q ≤ 20000. |
+
+| kroneckerCharacter(D) | The Kronecker symbol (D/⋅) as a character modulo \|D\|. |
+
+| bernoulli(n), bernoulliPolynomial(n, x), generalizedBernoulli(k, χ) | Bn​ (with B1​=−1/2), Bn​(x), and Bk,χ​. |
+
+| zetaExact(n) | A Rational for n ≤ 0; { coefficient, piPower } for even n > 0. |
+
+| lValueExact(χ, n) | L(n,χ) for an integer n ≤ 0: a Rational for a real character, else an element of a cyclotomic field. |
+
+| zetaValue(s, { bits }) | A proven enclosure of ζ(s): a RationalInterval for real s, { re, im } for [σ, t]. Width below 2−bits, 64 by default. |
+
+| hurwitzZeta(s, a, { bits }) | An enclosure of ζ(s,a) for a rational a in (0, 1]. |
+
+| lValue(χ, s, { bits }) | An enclosure of L(s,χ) anywhere in the plane (modulus ≤ 5000); at s = 1 for a non-principal character. |
+
+### Integers and the rest
+
+| Export | What it does |
+
+| isqrt(n), iroot(n, k), gcd(a, b), lcm(a, b), egcd(a, b) | Integer roots, gcd and lcm, and Bézout's { g, x, y }. |
+
+| NumberTheoryError | Thrown for refusals; code is one of "bad-argument", "too-large", "too-hard", "unproven", "unknown-valuation", "not-a-square", "diverges", "singular", "not-on-curve", "budget", "pole", "precision", "unsupported". |
+
+| plan | The phases still to come: empty, everything planned is built. |
+
+### Try it
+
+```js
+// a tour: one call from each section
+PRINT(provePrime(2n ** 89n - 1n).certificate.kind, formatFactors(factor(10n ** 18n + 1n)));
+PRINT(sigma(28), totient(1001), crt([1, 2, 3], [5, 7, 9]));
+PRINT(ellipticCurve([2, 3], { mod: 97 }).count(), ecm(2n ** 128n + 1n), ellipticCurve([0, 1]).torsion().structure);
+PRINT(jacobi(1001, 9907), twoSquaresAll(65), fourSquares(2026));
+PRINT(frobenius([6, 9, 20]), pellSolutions(2, 7).fundamental, classGroup(-3299).structure);
+PRINT(fieldDiscriminant([-2n, 0n, 0n, 1n]), fieldClassNumber([-7n, 0n, 0n, 1n]), regulator([-2n, 0n, 0n, 1n]));
+PRINT(primePi(10n ** 9n), String(dirichletCharacter(7, 3)), zetaExact(-3), String(zetaExact(4)));
+padic(-1, 5n).sqrt().toString(16)
+```
+
+---
+
+Page: https://ratmath.com/numtheory/explore.html
+
+Explore
+
+## Explore
+
+Type a number and see what number theory says about it: its factorisation and the proof that the factors are prime, its divisors and their sums, how it splits into squares. Then try a modulus, a discriminant, an elliptic curve, a p-adic expansion, a number field, and the characters of a modulus.
+
+### A number
+
+n
+
+Any whole number: try a 40-digit one. Primes below 264 are proven by Baillie–PSW, larger ones by a certificate that a separate checker verifies.
+
+### Modulo m
+
+abm
+
+### A discriminant
+
+DN in x² − Dy² = N
+
+The class group counts forms ax2+bxy+cy2 with b2−4ac=D up to change of variables. For a positive non-square D the Pell line lists the first solutions of x2−Dy2=N; for D ≡ 2, 3 mod 4 the forms of discriminant 4D are the relevant ones.
+
+### An elliptic curve
+
+coefficientsp
+
+Two coefficients a, b for y2=x3+ax+b, or five for the long form a1​,a2​,a3​,a4​,a6​. The last lines reduce the curve modulo the prime p. Try `-43, 166`, `1, 0, 1, -19, 26` or `-432, 8208`.
+
+### A p-adic number
+
+xpdigits
+
+### A number field
+
+polynomial, constant first
+
+The coefficients of an irreducible polynomial, constant term first: `-7, 0, 0, 1` is x3−7. The class group and the units are proven; see [Class groups](https://ratmath.com/numtheory/class-groups.html) for how.
+
+### Characters modulo q
+
+qs in L(s, χ)
+
+Each row is one character χq​(m,⋅) with its order, conductor and parity, and an enclosure of L(s,χ) for real characters at the s given (a whole number or a fraction such as `1/2`).
+
+### Try it
+
+```js
+// The page above, as code.
+const n = 1105n;
+PRINT(formatFactors(factor(n)), " σ =", sigma(n), " φ =", totient(n), " μ =", mobius(n), " λ =", carmichael(n));
+PRINT("as two squares:", twoSquaresAll(n).map(([a, b]) => `${a}² + ${b}²`).join(", "));
+PRINT("as four squares:", fourSquares(n));
+PRINT("10 mod 13: order", order(10, 13), " (10/13) =", jacobi(10, 13), " 10x ≡ 4:", solveLinear(10, 4, 13).solutions);
+const G = classGroup(-84);
+PRINT("h(−84) =", G.h, G.forms.map(String), "structure", G.structure);
+const E = ellipticCurve([0, 0, 1, -1, 0]);
+PRINT(String(E), " conductor", E.conductor(), " torsion", E.torsion().structure, " #E(F_1000003) =", E.modulo(1000003).count());
+const cl = idealClassGroup([-7n, 0n, 0n, 1n]);
+PRINT(String(cl), " units:", unitGroup([-7n, 0n, 0n, 1n]).fundamentalUnits.map(String), " proven:", cl.proven);
+PRINT(dirichletGroup(15).characters.map((c) => `${c} order ${c.order} conductor ${c.conductor}`));
+padic("-1/3", 5n).toString(24)
+```
+
+---
+
+Page: https://ratmath.com/numtheory/primes.html
+
+Primes and certificates
+
+## Primes and certificates
+
+Saying a big number is prime is easy; proving it is harder. Here every yes and every no comes with its reason: below 264 a test with no exceptions, above it a certificate that a separate checker verifies, and when no certificate can be found, an honest refusal.
+
+### Listing and counting
+
+```js
+import { primes, primePi, nthPrime, nextPrime, prevPrime, primesBetween } from "@ratmath/numtheory";
+
+primes(50);                 // [2n, 3n, 5n, …, 47n]: the sieve of Eratosthenes
+primePi(1000000);           // 78498n primes up to a million
+nthPrime(10000);            // 104729n
+nextPrime(10n ** 12n);      // 1000000000039n
+prevPrime(100);             // 97n
+primesBetween(10n ** 15n, 10n ** 15n + 100n);   // [1000000000000037n, 1000000000000091n]
+```
+
+The sieve crosses out the multiples of each prime p≤N​, starting at p2; what survives is prime. `primesBetween` runs the same sieve on a window [a,b] using the primes up to b​, so a window high up costs no more than its width. The prime number theorem says π(x)≈x/lnx: for x=106 that guess is 72 382, against the true 78 498.
+
+### Is it prime? Proven below 264
+
+A strong probable prime test to base a writes n−1=2sd with d odd and checks that ad≡1 or a2rd≡−1(modn) for some r. A prime always passes (the only square roots of 1 modulo a prime are ±1); a composite fails for at least three quarters of the bases. The Baillie–PSW test combines one strong test to base 2 with a strong Lucas test. No composite passing both is known at all, and every number below 264 has been checked, so there it is a proof.
+
+```js
+isPrime(2n ** 61n - 1n);          // true: proven, it is below 2^64
+isProbablePrime(2n ** 255n - 19n); // true, but not a proof
+isPrime(2n ** 255n - 19n);        // throws "unproven": n − 1 has too little known factorisation
+```
+
+### Certificates
+
+Above 264, `provePrime` looks for a certificate. Pocklington's theorem: write n−1=F⋅R with F completely factored. If for each prime q∣F there is a base a with
+
+an−1≡1(modn)andgcd(a(n−1)/q−1, n)=1,
+then every prime factor p of n satisfies p≡1(modF). (The order of a modulo p divides n−1 but not (n−1)/q, so qe divides it, and the order divides p−1.) If F>n​−1, a prime factor would exceed n​, so n is prime. The Brillhart–Lehmer–Selfridge refinement needs only F>n1/3: writing n−1=F(c2​F+c1​), n is prime exactly when c12​−4c2​ is not a perfect square.
+
+Each prime q in F needs its own certificate, so the result is a tree, ending in primes below 232 that trial division settles.
+
+```js
+const r = provePrime(2n ** 127n - 1n);
+r.proven;                     // true
+r.certificate.kind;           // "pocklington"
+r.certificate.factors.map((f) => f.q);   // [2n, 3n, 7n, 19n, 43n, 73n, 127n, 337n, 5419n, 92737n]
+verifyCertificate(r.certificate);         // { valid: true }
+
+provePrime(561);              // { prime: false, proven: true, factor: 3n }
+provePrime(2n ** 67n - 1n);   // { prime: false, proven: true, witness: 3n }: Cole's number
+```
+
+### Why a separate verifier
+
+`verifyCertificate` lives in its own file and imports nothing from the rest of the package: its own modular power, its own gcd, its own square root. It trusts nothing in the certificate; it recomputes F, checks that F⋅R=n−1, that each listed qe divides F and that they multiply to F, each base condition, the size condition, and each sub-certificate in turn. So a bug in the search can produce no certificate, but it cannot produce a false one that passes. A composite answer is checked the same way: `verifyComposite` confirms a factor divides, or that a base is a Miller–Rabin witness.
+
+When n−1 cannot be factored far enough (a third of its bits for BLS), `provePrime` turns to an elliptic curve: a curve modulo n with a point whose order is a large prime q, which is certified in turn. 1060+7 is such a case. The same verifier checks those certificates; see [Elliptic curve certificates](https://ratmath.com/numtheory/elliptic-certificates.html). With `{ elliptic: false }` only n−1 is used, and a number it cannot certify comes back with `proven: false` and the reason.
+
+### Try it
+
+```js
+// certify a few primes and check each certificate independently
+for (const p of [2n ** 89n - 1n, 2n ** 107n - 1n, 10n ** 30n + 57n]) {
+  const r = provePrime(p);
+  PRINT(p, r.certificate.kind, "F has", r.certificate.factors.length, "primes;", verifyCertificate(r.certificate));
+}
+// tamper with one: the verifier notices
+const c = provePrime(2n ** 89n - 1n).certificate;
+PRINT("tampered:", verifyCertificate({ ...c, n: c.n + 2n }));
+// composites come with a proof too
+const k = provePrime(3215031751n);   // a strong pseudoprime to bases 2, 3, 5 and 7
+PRINT(k, verifyComposite(3215031751n, k));
+primePi(10 ** 7)
+```
+
+---
+
+Page: https://ratmath.com/numtheory/prime-counting.html
+
+Primes
+
+## Counting primes
+
+How many primes are there up to a trillion? Listing them would take 37 billion numbers. Counting them without listing them takes about a second.
+
+### Legendre's formula
+
+Let φ(x,a) be the number of n≤x not divisible by any of the first a primes. Removing the multiples of the a-th prime from the numbers counted by φ(x,a−1) gives the recurrence
+
+φ(x,a)=φ(x,a−1)−φ(⌊pa​x​⌋,a−1),φ(x,0)=⌊x⌋,
+which is inclusion and exclusion, organised. If a=π(x​), the numbers counted are 1 and the primes between x​ and x, so π(x)=φ(x,a)+a−1.
+
+```js
+import { legendrePhi, primePi, meissel } from "@ratmath/numtheory";
+
+legendrePhi(100, 3);     // 26n: the n ≤ 100 coprime to 30
+legendrePhi(100, 4);     // 22n: 1 and the 21 primes from 11 to 97
+22n + 4n - 1n;           // 25n = π(100)
+```
+
+### Meissel's improvement
+
+The recurrence has too many terms when a is as large as π(x​). Meissel took a=π(3x​) instead. Then φ(x,a) counts 1, the primes between 3x​ and x, and the products of exactly two such primes; no product of three fits below x. Hence
+
+π(x)=φ(x,a)+a−1−P2​(x,a),P2​(x,a)=3x​<p≤x​∑​(π(px​)−π(p)+1).
+The sum needs π only up to x2/3, which a sieve provides.
+
+```js
+meissel(1000);
+// { pi: 168n, y: 10n, a: 4n, phi: 228n, P2: 63n }:   228 + 4 − 1 − 63 = 168
+meissel(10n ** 6n);
+// { pi: 78498n, y: 100n, a: 25n, phi: 120760n, P2: 42286n }
+
+primePi(10n ** 9n);      // 50847534n
+primePi(10n ** 12n);     // 37607912018n, in about a second
+```
+
+`primePi` sieves below 107 and uses this formula above, up to 1012.
+
+### What makes it fast
+
+- A table for the first primes. φ(x,6) is periodic in x with period 30030=2⋅3⋯13, so it is a table lookup, and the recurrence starts at the seventh prime.
+
+- Stopping early. When x2​, the numbers counted by φ(x,a) are 1 and primes, so φ(x,a)=π(x)−a+1, another lookup.
+
+- A compact sieve. The sieve up to x2/3 keeps one bit for each odd number and a running count for every 32 bits, so π(m) at any m costs one addition and one bit count. At x=1012 that is 6 megabytes.
+
+Lehmer, and later Lagarias, Miller and Odlyzko, pushed the same idea further (more correction terms, and a sieve in place of the recurrence); the record computations of π(1027) and beyond descend from it. Compare the result with the estimates: π(1012)=37607912018, while x/lnx gives 3.62×1010 and the logarithmic integral li(x) gives 37607950281, off by 38263.
+
+### Try it
+
+```js
+// π(x) at powers of ten, with the pieces of Meissel's formula and the prime number theorem's estimate
+for (let k = 2; k <= 11; k++) {
+  const x = 10n ** BigInt(k);
+  const m = meissel(x);
+  const est = Number(x) / Math.log(Number(x));
+  PRINT(`10^${k}`.padEnd(6), `π = ${m.pi}`.padEnd(18), `a = ${m.a}`.padEnd(9), `φ = ${m.phi}`.padEnd(18), `P₂ = ${m.P2}`.padEnd(18), `π / (x / ln x) = ${(Number(m.pi) / est).toFixed(4)}`);
+}
+```
+
+---
+
+Page: https://ratmath.com/numtheory/factoring.html
+
+Factoring
+
+## Factoring
+
+Splitting a number into primes: trial division for the small factors, Pollard's rho for the medium ones, and the p − 1 method when a factor happens to have a smooth neighbour. Every prime in the answer says whether it is proven.
+
+### The whole factorisation
+
+```js
+import { factor, formatFactors } from "@ratmath/numtheory";
+
+formatFactors(factor(600851475143n));   // "71 · 839 · 1471 · 6857"
+formatFactors(factor(2n ** 64n + 1n));  // "274177 · 67280421310721": Landry's 1880 split of F₆
+formatFactors(factor(10n ** 20n + 1n)); // "73 · 137 · 1676321 · 5964848081"
+factor(2n ** 67n - 1n);
+// [{ prime: 193707721n, exponent: 1, proven: true },
+//  { prime: 761838257287n, exponent: 1, proven: true }]
+```
+
+`factor` divides out the primes below 105, then splits what is left: a probable prime goes into the answer, a perfect square is split into its roots, anything else goes to Pollard's rho, then to p−1, then to the elliptic curve method. Factors below 264 are proven by Baillie–PSW; a larger one is proven by a certificate, and `proven: false` says when that could not be found.
+
+### Pollard's rho
+
+Iterate x↦x2+c(modn). Modulo an unknown prime p∣n the sequence lives in a set of size p, so it must repeat, and by the birthday paradox it does so after about p​ steps: its picture is the Greek letter ρ, a tail and a loop. Once xi​≡xj​(modp), gcd(xi​−xj​,n) is a multiple of p. Brent's version finds the loop by comparing against a saved value at powers of two, and multiplies many differences together before taking one gcd. The cost is about p​ multiplications: a 12-digit factor takes around a million.
+
+```js
+pollardRho(1000000007n * 998244353n);   // 998244353n
+pollardPm1(1000000007n * 1000000009n);  // 1000000009n
+pollardPm1(2n ** 67n - 1n);             // null: see below
+```
+
+### Pollard's p − 1
+
+If p−1 has only prime factors below a bound B, then p−1 divides M=∏q≤B​q⌊logq​B⌋, and by Fermat aM≡1(modp), so gcd(aM−1,n) picks p out. It finds 1000000009 in 1000000007⋅1000000009 at once, because 1000000008=23⋅32⋅7⋅1092⋅167 is smooth while 1000000006=2⋅500000003 is not. It can also be too lucky: for Cole's number 267−1 both p−1s are smooth (193707720=23⋅33⋅5⋅67⋅2677), both factors drop out together, the gcd is n itself, and the method reports nothing.
+
+### Beyond rho
+
+Rho slows down when the smallest prime factor passes about 12 digits. The seventh Fermat number 2128+1 is the product of two primes of 17 and 22 digits: rho would need hundreds of millions of steps, and p−1 fails on it. So after a short run of rho and p−1, `factor` goes on to [the elliptic curve method](https://ratmath.com/numtheory/ecm.html), which is to p−1 what a family of groups is to one group, and which finds that 17-digit factor in a fraction of a second. Factors of up to about 25 digits are within reach; beyond that `factor` gives up with the reason rather than running for hours.
+
+### Try it
+
+```js
+// Pollard rho on products of two primes of growing size
+for (const [p, q] of [[10007n, 10009n], [1000003n, 1000033n], [1000000007n, 1000000009n]]) {
+  PRINT(p * q, "=", pollardRho(p * q), "×", p * q / pollardRho(p * q));
+}
+PRINT(formatFactors(factor(2n ** 2n ** 5n + 1n)));   // F₅ = 641 · 6700417 (Euler)
+PRINT(formatFactors(factor(1234567890123456789n)));
+const t = trialDivide(2n ** 10n * 3n ** 5n * 1000003n);
+PRINT([...t.found], "rest", t.rest);
+formatFactors(factor(2n ** 128n + 1n))   // F₇, by the elliptic curve method
+```
+
+---
+
+Page: https://ratmath.com/numtheory/ecm.html
+
+The elliptic curve method
+
+## The elliptic curve method
+
+Pollard's p−1 method finds a prime factor when one particular number happens to be smooth. Lenstra's idea was to replace that one number by the orders of as many groups as you care to try: an elliptic curve for each attempt. It finds factors of twenty and more digits whatever the size of the number they divide.
+
+### From p − 1 to curves
+
+The p−1 method computes aMmodn for M a product of small prime powers. If p∣n and p−1 divides M, then aM≡1(modp), and gcd(aM−1,n) reveals p. It works in the group (Z/p)∗, of order p−1, and if p−1 has a large prime factor there is nothing to be done: there is only one such group.
+
+An elliptic curve modulo n is, modulo each prime p∣n, a group E(Fp​) whose order is somewhere in the Hasse interval [p+1−2p​, p+1+2p​], and different curves give different orders, spread over that interval. Compute M⋅P on the curve modulo n. If the order of E(Fp​) divides M, the result is the point at infinity modulo p but (almost always) not modulo the other primes, and a gcd with n gives p. If the curve is unlucky, take another.
+
+```js
+import { ecm, ecmCurve, factor, formatFactors } from "@ratmath/numtheory";
+
+const F7 = 2n ** 128n + 1n;
+ecm(F7);                                  // 59649589127497217n
+ecm(F7, { details: true });               // { factor: 59649589127497217n, stage: 2, sigma: 26n, B1: 2000, B2: 200000 }
+formatFactors(factor(F7));                // "59649589127497217 · 5704689200685129054721", both proven prime
+```
+
+The seventh Fermat number was first factored in 1970 by Morrison and Brillhart, with the continued fraction method on an IBM mainframe. Here the twenty-first curve tried finds the 17-digit factor in a fraction of a second. Pollard's rho would need about 6⋅1016​≈2⋅108 steps, and p−1 fails because p−1=29⋅116503103764643.
+
+### Why that curve worked
+
+The curve with σ=26, taken modulo p=59649589127497217, has
+
+59649589504338456=23⋅3⋅7⋅67⋅233⋅331⋅599⋅114713
+points. Every prime power in it is below B1​=2000 except one prime, 114713, which is below B2​=200000. That is exactly the pattern the two stages look for. Stage 1 multiplies the starting point by every prime power up to B1​. Stage 2 then allows for one more prime q between B1​ and B2​: instead of multiplying by each q in turn, it compares the x-coordinates of a few hundred precomputed multiples, which costs two multiplications per prime. (The code box below recomputes this group order with the point counting of the previous page.)
+
+### The curves
+
+Curves are in Montgomery form By2=x3+Ax2+x, where a point can be doubled, and two points added when their difference is known, using x-coordinates only and no divisions. Suyama's parametrisation produces from a number σ≥6 a curve and a point on it, with group order divisible by 12, which makes smoothness a little more likely. `ecm` tries σ=6,7,8,…, so a run is reproducible, and `ecmCurve(n, sigma, { B1, B2 })` runs a single curve.
+
+| Digits of the factor | B1 | Curves, roughly |
+
+| 15 | 2,000 | 25 |
+
+| 20 | 11,000 | 90 |
+
+| 25 | 50,000 | 300 |
+
+| 30 | 250,000 | 700 |
+
+These are rough guideline figures for this method with B2​=100B1​; luck varies. The cost of a curve is proportional to B1​ and to the square of the number of digits of n.
+
+### Inside factor
+
+`factor` now runs trial division, a short Pollard rho, p−1, and then the elliptic curve method with growing bounds (B1​ = 2000, 11000, 50000) before it gives up. Option `effort` multiplies the number of curves at each level. What comes out is still checked: each prime factor is proven, by Baillie–PSW below 264 and by a certificate above.
+
+```js
+formatFactors(factor(10n ** 40n + 1n));   // "17 · 5070721 · 5882353 · 19721061166646717498359681"
+formatFactors(factor(2n ** 137n - 1n));   // "32032215596496435569 · 5439042183600204290159"
+```
+
+A failure is not a proof of anything: when no factor is found, the remaining number may be a product of two primes of thirty digits each, and `factor` refuses with the code `"too-hard"`. Numbers like that need the quadratic or number field sieve, which are not in this library.
+
+### Try it
+
+```js
+// F₇, and why the lucky curve was lucky
+const F7 = 2n ** 128n + 1n;
+const r = ecm(F7, { details: true });
+PRINT("found", r.factor, "on the curve σ =", r.sigma, "in stage", r.stage);
+
+// the Montgomery curve of that σ, modulo the factor found, and its number of points
+const p = r.factor;
+const s = r.sigma;
+const [u, v] = [(s * s - 5n) % p, (4n * s) % p];
+const A = (((v - u + p) ** 3n * (3n * u + v) % p) * modInverse(16n * u ** 3n * v % p, p) * 4n - 2n + p) % p;
+const C = ellipticCurve([0n, A, 0n, 1n, 0n], { mod: p });      // y² = x³ + Ax² + x
+const x0 = (u ** 3n * modInverse(v ** 3n % p, p)) % p;
+// x-only arithmetic runs on the curve or on its twist, whichever the starting x belongs to
+const order = C.liftX(x0).length ? C.count() : 2n * p + 2n - C.count();
+PRINT("group order", order, "=", formatFactors(factor(order)));
+PRINT("p − 1 =", formatFactors(factor(p - 1n)), " (not smooth: p − 1 fails)");
+
+// how many curves does each σ need? try a few semiprimes
+for (const [a, b] of [[1000003n, 2n ** 89n - 1n], [10n ** 12n + 39n, 2n ** 107n - 1n], [10n ** 15n + 37n, 10n ** 18n + 9n]]) {
+  const d = ecm(a * b, { details: true });
+  PRINT(a * b, "→", d?.factor, " σ =", d?.sigma, " stage", d?.stage);
+}
+formatFactors(factor(F7))
+```
+
+---
+
+Page: https://ratmath.com/numtheory/elliptic-certificates.html
+
+Elliptic curve certificates
+
+## Elliptic curve certificates
+
+A Pocklington certificate needs the factorisation of n−1, and for most large primes that is out of reach. An elliptic curve gives a second chance, and a third, and as many as needed: any curve modulo n whose number of points has a large prime factor will do. This is how primes of hundreds of digits are proven in practice.
+
+### The theorem
+
+Let n be prime to 6, E a curve y2=x3+ax+b modulo n, and P a point on it. Suppose m=kq with q prime and
+
+q>(n1/4+1)2,m⋅P=O,k⋅P=O (a finite point, with every division along the way possible).
+Then n is prime (Goldwasser and Kilian, 1986). The reason is short. If n had a prime factor p≤n​, then modulo p the point kP would have order exactly q in E(Fp​). But that group has at most (p​+1)2≤(n1/4+1)2<q elements, by Hasse's theorem. So the certificate is the curve, the point, m and q, together with a certificate for q, which is about the size of n/k: a chain that descends until Pocklington or trial division finishes it.
+
+```js
+import { provePrime, verifyCertificate, isPrime } from "@ratmath/numtheory";
+
+const n = 10n ** 60n + 7n;
+const r = provePrime(n);
+r.certificate.kind;            // "elliptic"
+r.certificate.discriminant;    // -7
+r.certificate.m;               // 1000000000000000000000000000002000000000000000000000000000008n
+r.certificate.q;               // 26641539363749891267808119193147605196373n, a 41-digit prime
+r.certificate.certificate.kind;   // "pocklington": q − 1 could be factored far enough
+verifyCertificate(r.certificate); // { valid: true }
+
+provePrime(n, { elliptic: false }).reason;   // "only 55 of the 200 bits of n − 1 could be factored and certified (a third are needed)"
+isPrime(2n ** 255n - 19n);     // true: n − 1 = 2² · 3 · 65147 · (a 71-digit prime), and that prime is certified with curves
+```
+
+### Where the curve comes from
+
+Goldwasser and Kilian picked random curves and counted their points with Schoof's algorithm, which is far too slow to do many times. Atkin and Morain turned it around: build a curve whose number of points is known in advance.
+
+If 4n=t2+∣D∣v2 for a negative discriminant D, then there are curves modulo n with exactly n+1−t and n+1+t points: those with complex multiplication by D. Their j-invariants are the roots modulo n of the Hilbert class polynomial HD​. For the example above, 4n=(2⋅1030)2+7⋅22, so D=−7 works with t=±2⋅1030, and m=n+1+2⋅1030 happens to be 23⋅11⋅29⋅6091⋅10343⋅233466671 times a prime. The search runs through discriminants in order, solves 4n=t2+∣D∣v2 by Cornacchia's algorithm, and keeps a candidate m when small factors can be stripped from it to leave a large enough probable prime.
+
+### Class polynomials
+
+```js
+import { classPolynomial, classNumber } from "@ratmath/numtheory";
+
+classPolynomial(-7);      // [3375n, 1n]: x + 3375, so j = −3375 = −15³
+classPolynomial(-163);    // [262537412640768000n, 1n]: j = −640320³
+classPolynomial(-23);     // [12771880859375n, -5151296875n, 3491750n, 1n]
+classNumber(-23);         // 3n: the degree of H_D is the class number
+```
+
+HD​(x)=∏(x−j(τ)), the product over the reduced forms (a,b,c) of discriminant D (see [Quadratic forms](https://ratmath.com/numtheory/quadratic-forms.html)) with τ=(−b+D​)/2a. The j-function is evaluated from its definition j=E43​/Δ in fixed-point complex arithmetic with enough digits, and the product, which must have whole coefficients, is rounded and the rounding checked. The famous near-integer eπ163​=262537412640768743.99999999999925… is this in miniature: j(τ)=1/q+744+196884q+⋯ is a whole number while q=−e−π163​ is tiny.
+
+### What has to be trusted
+
+Very little. The class polynomial is computed numerically, square roots modulo n assume n is prime, and the search takes shortcuts. None of that matters for soundness: all of it only serves to find a curve and a point, and the certificate is then checked by [the independent verifier](https://ratmath.com/numtheory/primes.html), which knows nothing about complex multiplication. It checks that the point is on the curve, that the discriminant of the curve is a unit modulo n, the size of q, the certificate of q, and the two multiplications. Its curve arithmetic uses plain affine coordinates and insists that every divisor is a unit modulo n, so each step is a true group operation modulo every prime factor of n at once; a shortcut through projective coordinates would not have that property. A mistake in the search can only mean that no certificate is found.
+
+The tests attack the verifier directly: they build composite numbers n=pr, curves and points whose orders modulo both primes are known, and offer every prime factor of the order as q. All are rejected.
+
+### How far it goes
+
+Discriminants up to 5000 with class number up to 12 are tried by default (options `maxDiscriminant`, `maxClassNumber`). Primes of 60 digits take a fraction of a second, 150 digits a couple of seconds, 230 digits under ten seconds. The search can fail, and then `provePrime` says so and `isPrime` refuses, as before.
+
+### Try it
+
+```js
+// a chain of certificates, link by link
+const describe = (c) => {
+  const out = [];
+  while (c) {
+    out.push(`${c.kind} (${String(c.n).length} digits${c.kind === "elliptic" ? `, D = ${c.discriminant}` : ""})`);
+    c = c.kind === "elliptic" ? c.certificate : c.factors ? c.factors[c.factors.length - 1].certificate : null;
+  }
+  return out.join(" → ");
+};
+for (const n of [10n ** 60n + 7n, 2n ** 255n - 19n, nextPrime(10n ** 50n)]) {
+  const r = provePrime(n);
+  PRINT(String(n).length, "digits:", describe(r.certificate), verifyCertificate(r.certificate));
+}
+
+// the first link for 10^60 + 7, checked by hand: P on the curve, m·P = O on the curve mod n
+const c = provePrime(10n ** 60n + 7n).certificate;
+const E = ellipticCurve([c.a, c.b], { mod: c.n });
+const P = E.point(c.x, c.y);
+PRINT("m·P =", E.mul(c.m, P), " (m/q)·P is finite:", !E.mul(c.m / c.q, P).infinity);
+PRINT("t = n + 1 − m =", c.n + 1n - c.m, " and 4n − t² =", 4n * c.n - (c.n + 1n - c.m) ** 2n);
+
+// tamper with it
+PRINT(verifyCertificate({ ...c, x: c.x + 1n }));
+PRINT(verifyCertificate({ ...c, q: c.q + 2n }));
+
+// class polynomials: the degree is the class number
+for (const D of [-7, -15, -23, -47, -71]) PRINT(D, "h =", classNumber(D), classPolynomial(D));
+nextPrime(10n ** 80n) - 10n ** 80n
+```
+
+---
+
+Page: https://ratmath.com/numtheory/arithmetic-functions.html
+
+Arithmetic functions
+
+## Arithmetic functions
+
+Functions on the positive integers that see a number through its divisors: how many there are, what they add to, how many residues are units. Most are multiplicative, so they come from the factorisation, and Dirichlet convolution ties them together.
+
+### The usual suspects
+
+```js
+import { divisors, sigma, tau, totient, mobius, carmichael } from "@ratmath/numtheory";
+
+divisors(60);     // [1n, 2n, 3n, 4n, 5n, 6n, 10n, 12n, 15n, 20n, 30n, 60n]
+tau(60);          // 12n   the number of divisors
+sigma(60);        // 168n  their sum;  sigma(60, 2) = 5460n, the sum of their squares
+totient(60);      // 16n   residues prime to 60
+carmichael(60);   // 4n    every unit mod 60 has a⁴ ≡ 1
+mobius(60);       // 0n    4 divides 60;  mobius(30) = -1n
+omega(60);        // 3n distinct primes;  bigOmega(60) = 4n with multiplicity
+```
+
+For n=∏pe the formulas are
+
+τ(n)=∏(e+1),σ(n)=∏p−1pe+1−1​,φ(n)=np∣n∏​(1−p1​).
+A function is multiplicative when f(mn)=f(m)f(n) for coprime m,n; all of these are, so each is fixed by its values at prime powers. `isMultiplicative(f)` tests that on examples (it is a check, not a proof). Carmichael's λ(n) is the exponent of the unit group: λ(2e)=2e−2 for e≥3, λ(pe)=φ(pe) otherwise, and the lcm across the prime powers. It divides φ(n), and it is smaller exactly when there is no primitive root.
+
+### Perfect, abundant, amicable
+
+```js
+classify(28);               // "perfect": σ(28) = 56 = 2·28
+perfectNumbers(6);          // [6n, 28n, 496n, 8128n, 33550336n, 8589869056n]
+amicablePairs(10000);       // [[220n, 284n], [1184n, 1210n], [2620n, 2924n], [5020n, 5564n], [6232n, 6368n]]
+aliquotSequence(12);        // 12, 16, 15, 9, 4, 3, 1, 0: "terminates"
+aliquotSequence(12496).ending;   // "cycle of length 5": a sociable chain
+aliquotSequence(276, { steps: 30 }).ending;   // "unfinished": nobody knows how 276 ends
+```
+
+Euclid showed 2p−1(2p−1) is perfect when 2p−1 is prime; Euler showed every even perfect number has that form. `perfectNumbers` finds the Mersenne primes with the Lucas–Lehmer test: with s0​=4, sk+1​=sk2​−2, 2p−1 is prime exactly when sp−2​≡0. Whether an odd perfect number exists is open. The aliquot sequence iterates s(n)=σ(n)−n; Catalan and Dickson conjectured that it always ends or cycles, and 276 is the smallest start nobody has followed to the end.
+
+### Dirichlet convolution
+
+The convolution of two arithmetic functions is (f∗g)(n)=∑d∣n​f(d)g(n/d). It is commutative and associative, with identity ε (1 at 1, 0 elsewhere), and it turns the classical identities into one-liners:
+
+μ∗1=ε,φ∗1=id,id∗1=σ.
+Möbius inversion follows from the first: if F=f∗1, then f=F∗μ. So φ is recovered from ∑d∣n​φ(d)=n, and id from σ.
+
+```js
+const e = dirichlet(mobius, one);
+[1n, 2n, 3n, 4n, 5n, 6n].map(e);              // [1n, 0n, 0n, 0n, 0n, 0n]: ε
+[1n, 2n, 6n, 12n].map(dirichlet(totient, one)); // [1n, 2n, 6n, 12n]: id
+[1n, 2n, 3n, 4n].map(mobiusInversion(sigma));  // [1n, 2n, 3n, 4n]: σ inverted is id
+```
+
+### Try it
+
+```js
+// abundant numbers below 100, and the first odd one
+const abundant = [];
+for (let n = 1; n < 100; n++) if (classify(n) === "abundant") abundant.push(n);
+PRINT("abundant < 100:", abundant.join(" "));
+let n = 1n;
+while (classify(n) !== "abundant") n += 2n;
+PRINT("first odd abundant:", n, "σ =", sigma(n));
+// Gauss: Σ_{d | n} φ(d) = n, checked by convolution
+const F = dirichlet(totient, one);
+PRINT([1n, 7n, 36n, 360n, 1001n].map((k) => [k, F(k)]));
+// λ versus φ: no primitive root exactly where they differ
+[8n, 9n, 15n, 18n, 24n, 49n].map((k) => [k, totient(k), carmichael(k)])
+```
+
+---
+
+Page: https://ratmath.com/numtheory/congruences.html
+
+Congruences
+
+## Congruences
+
+Arithmetic modulo m: when a·x ≡ b has solutions and how many, gluing congruences together with the Chinese remainder theorem, roots of polynomials modulo any m, and the cyclic groups that make discrete logarithms possible.
+
+### Linear congruences
+
+```js
+import { solveLinear, crt, rootsMod, hensel, primitiveRootMod, discreteLog } from "@ratmath/numtheory";
+
+solveLinear(6, 4, 10);   // { solutions: [4n, 9n], modulus: 10n, g: 2n, reduced: { x: 4n, modulus: 5n } }
+solveLinear(6, 5, 10);   // { solutions: [], g: 2n, reason: "gcd(6, 10) = 2 does not divide 5" }
+```
+
+ax≡b(modm) is solvable exactly when g=gcd(a,m) divides b. Then dividing through gives (a/g)x≡b/g(modm/g), where a/g is invertible, so there is one solution modulo m/g and g of them modulo m. The inverse comes from the extended Euclidean algorithm: as+mt=g.
+
+### The Chinese remainder theorem, for any moduli
+
+```js
+crt([2, 3, 2], [3, 5, 7]);   // { x: 23n, modulus: 105n }: Sunzi's problem
+crt([1, 3], [4, 6]);          // { x: 9n, modulus: 12n }: moduli need not be coprime
+crt([1, 2], [4, 6]);          // null: x odd and x even at once
+solveLinearSystem([[2, 1, 5], [3, 2, 7]]);   // 2x ≡ 1 (mod 5), 3x ≡ 2 (mod 7): { x: 3n, modulus: 35n }
+```
+
+Two congruences x≡r1​(modm1​), x≡r2​(modm2​) are compatible exactly when r1​≡r2​(modgcd(m1​,m2​)), and then they have one solution modulo lcm(m1​,m2​). Combining two at a time handles any list.
+
+### Polynomial congruences and Hensel's lemma
+
+To solve f(x)≡0(modm), solve modulo each prime power in m and glue with the Chinese remainder theorem. Modulo p, try every residue (or factor, for large p). To go from pk to pk+1: if f(r)≡0(modpk) and f′(r)≡0(modp), then
+
+r′=r−f′(r)f(r)​(modpk+1)
+is the unique lift, Newton's method with p-adic convergence. When f′(r)≡0 a root may lift to many or none; `rootsMod` then tries every lift.
+
+```js
+rootsMod([1, 0, 1], 65);       // x² + 1 ≡ 0 (mod 65): [8n, 18n, 47n, 57n]
+rootsMod([-1, 0, 1], 8);       // x² ≡ 1 (mod 8): [1n, 3n, 5n, 7n], four roots, not two
+hensel([1, 0, 1], 2, 5, 4);    // the root ≡ 2 of x² + 1 lifted to mod 625: 182n
+```
+
+### Primitive roots and indices
+
+The units modulo n form a cyclic group exactly when n is 1,2,4,pk or 2pk for an odd prime p (Gauss). A generator is a primitive root; g is one exactly when gφ(n)/q≡1 for every prime q∣φ(n). Then each unit h is gx for one x modulo φ(n), its index or discrete logarithm, found by baby-step giant-step in about n​ steps.
+
+```js
+primitiveRootMod(25);    // 2n
+primitiveRootMod(8);     // null: (Z/8)ˣ is {1, 3, 5, 7}, every element squares to 1
+order(10, 13);           // 6n: 1/13 has a period of 6 decimal digits
+discreteLog(3, 13, 17);  // 4n: 3⁴ = 81 ≡ 13 (mod 17)
+discreteLog(2, 3, 7);    // null: 2 generates only {1, 2, 4}
+```
+
+### Try it
+
+```js
+// Sunzi: a number leaves 2 when divided by 3, 3 by 5, 2 by 7
+PRINT(crt([2, 3, 2], [3, 5, 7]));
+// the number of solutions of x² ≡ 1 (mod m) is 2^k, more for powers of 2
+PRINT([15, 16, 24, 105, 120].map((m) => [m, rootsMod([-1, 0, 1], m).length]));
+// decimal periods: the order of 10 modulo p, and the full-period primes where 10 is a primitive root
+const full = primes(100).filter((p) => p > 5n && order(10, p) === p - 1n);
+PRINT("1/p has period p − 1 for p =", full.join(" "));
+// a Hensel lift of √2 in Z/7^10
+const r = hensel([-2, 0, 1], 3, 7, 10);
+PRINT(r, (r * r - 2n) % 7n ** 10n === 0n);
+discreteLog(primitiveRootMod(1000003), 123456, 1000003)
+```
+
+---
+
+Page: https://ratmath.com/numtheory/reciprocity.html
+
+Quadratic reciprocity
+
+## Quadratic reciprocity
+
+Which numbers are squares modulo p? Euler's criterion answers it with one power, and Gauss's law of quadratic reciprocity answers it faster, by turning the question upside down until it is trivial. The steps can be shown, line by line.
+
+### Residues and the Legendre symbol
+
+For an odd prime p and p∤a, a is a quadratic residue when x2≡a(modp) has a solution. Exactly half of the nonzero residues are. The Legendre symbol (pa​) is 1 for a residue, −1 for a non-residue and 0 when p∣a, and Euler's criterion computes it:
+
+(pa​)≡a(p−1)/2(modp).
+
+```js
+import { legendre, jacobi, jacobiSteps, eulerCriterion, gaussLemma, quadraticResidues, sqrtsMod } from "@ratmath/numtheory";
+
+quadraticResidues(11);    // [0n, 1n, 3n, 4n, 5n, 9n]
+legendre(2, 7);           // 1: 3² = 9 ≡ 2
+eulerCriterion(3, 7);     // { power: 6n, value: -1 }: 3³ = 27 ≡ −1 (mod 7)
+gaussLemma(3, 11);        // { value: 1, mu: 2, large: [6n, 9n] }
+```
+
+Gauss's lemma counts instead: among a,2a,…,2p−1​a reduced into (0,p), let μ be how many exceed p/2. Then (pa​)=(−1)μ. For a=3, p=11 the residues are 3, 6, 9, 1, 4, and two of them are large.
+
+### The law of quadratic reciprocity
+
+For distinct odd primes p,q:
+
+(qp​)(pq​)=(−1)2p−1​⋅2q−1​,
+so the two symbols agree unless both primes are 3mod4. With the two supplements (p−1​)=(−1)(p−1)/2 and (p2​)=1 exactly when p≡±1(mod8), any symbol can be computed like a gcd: reduce the top, pull out factors of 2, flip. The Jacobi symbol (na​)=∏(pi​a​) for odd n=∏pi​ obeys the same rules, so the flips never need a factorisation. (A Jacobi symbol of 1 does not mean a is a square mod n; a value of −1 does mean it is not.)
+
+```js
+jacobiSteps(1001, 9907).steps;
+// (1001/9907)
+// = (9907/1001)   reciprocity: one of them is 1 mod 4, so the sign stays
+// = (898/1001)    reduce the top mod 1001
+// = (449/1001)    take out 2: (2/1001) = 1 since 1001 ≡ 1 (mod 8)
+// …
+// = −(1/29)       take out 2^3: (2/29) = −1 since 29 ≡ 5 (mod 8)
+// = −1
+```
+
+The Kronecker symbol extends the Jacobi symbol to every bottom: (2a​) is 0 for even a, 1 for a≡±1(mod8), −1 for a≡±3, and (−1a​) is the sign of a. It is the character (⋅D​) attached to a quadratic field, which is how it appears in class number formulas.
+
+### Square roots modulo n
+
+Modulo a prime, Tonelli–Shanks finds a root in a few powers (from algebraic's `sqrtMod`). Modulo a composite, find the roots modulo each prime power by Hensel lifting and combine them: so there can be many.
+
+```js
+sqrtsMod(1, 15);    // [1n, 4n, 11n, 14n]
+sqrtsMod(4, 32);    // [2n, 6n, 10n, 14n, 18n, 22n, 26n, 30n]
+sqrtsMod(-1, 65);   // [8n, 18n, 47n, 57n]
+```
+
+### Try it
+
+```js
+// reciprocity checked on all pairs of odd primes below 60
+const ps = primes(60).slice(1);
+let ok = true;
+for (const p of ps) for (const q of ps) {
+  if (p === q) continue;
+  const sign = ((p - 1n) / 2n) * ((q - 1n) / 2n) % 2n ? -1 : 1;
+  if (legendre(p, q) * legendre(q, p) !== sign) ok = false;
+}
+PRINT("reciprocity holds:", ok);
+// 2 is a square mod p exactly when p ≡ ±1 (mod 8)
+PRINT(primes(80).slice(1).map((p) => `${p}:${legendre(2, p) > 0 ? "■" : "□"}`).join(" "));
+jacobiSteps(2024, 2027).steps.join("\n")
+```
+
+---
+
+Page: https://ratmath.com/numtheory/squares.html
+
+Sums of squares
+
+## Sums of squares
+
+Which numbers are sums of two squares, of three, of four? Fermat, Legendre and Lagrange answered each, and Jacobi counted the ways. Every representation of n as a sum of two squares comes out of the factorisation of n in the Gaussian integers.
+
+### Two squares
+
+Fermat: an odd prime is a sum of two squares exactly when p≡1(mod4). To find them, take x with x2≡−1(modp) and run Euclid's algorithm on p and x; the first remainder below p​ is a, and p−a2 is a square (Cornacchia, Brillhart).
+
+A number n is a sum of two squares exactly when every prime ≡3(mod4) divides it to an even power.
+
+```js
+import { primeAsTwoSquares, twoSquaresAll, twoSquaresReason, r2, threeSquares, fourSquares, r4, pythagoreanTriples } from "@ratmath/numtheory";
+
+primeAsTwoSquares(13);            // [3n, 2n]
+primeAsTwoSquares(1000000009n);   // [31400n, 3747n]
+twoSquaresAll(325);               // [[18n, 1n], [17n, 6n], [15n, 10n]]
+twoSquaresReason(21);             // { possible: false, reason: "3 ≡ 3 (mod 4) divides 21 to the odd power 1" }
+r2(325);                          // 24n: with signs and order
+```
+
+Why: in the Gaussian integers Z[i], a2+b2=(a+bi)(a−bi). A prime p≡1(mod4) splits as ππˉ, a prime ≡3 stays prime, and 2=−i(1+i)2. So the elements of norm n are found by choosing, for each pe∥n with p≡1, how many of the e factors are π and how many πˉ. Counting the choices gives Jacobi's formula
+
+r2​(n)=4(d1​(n)−d3​(n))=4p≡1(4)∏​(ep​+1)
+(when no prime ≡3 appears to an odd power), with di​ the number of divisors ≡i(mod4). 325=52⋅13 gives 4⋅3⋅2=24.
+
+### Three squares and four
+
+Legendre and Gauss: n is a sum of three squares unless n=4a(8b+7). Lagrange: every n is a sum of four. Jacobi again counts:
+
+r4​(n)=8d∣n, 4∤d∑​d.
+
+```js
+threeSquares(30);    // [5n, 2n, 1n]
+threeSquares(28);    // null: 28 = 4·7
+fourSquares(112);    // [8n, 4n, 4n, 4n]: 112 = 16·7 needs four
+r4(12);              // 96n
+rk(10, 8);           // 14112n: r₈(10), by multiplying out the theta series
+```
+
+`rk` counts directly as the coefficient of qn in θ(q)k, θ(q)=∑m∈Z​qm2, which is also how the tests check the formulas.
+
+### Pythagorean triples
+
+Every primitive triple a2+b2=c2 with a odd is a=m2−n2, b=2mn, c=m2+n2 for coprime m>n>0 of opposite parity (Euclid). Read in Z[i]: a+bi=(m+ni)2. So the triples with hypotenuse c are the representations of c2 as a sum of two squares, and those with leg a come from factoring a2=(c−b)(c+b).
+
+```js
+pythagoreanTriples(30);         // [[3n, 4n, 5n], [5n, 12n, 13n], [15n, 8n, 17n], [7n, 24n, 25n], [21n, 20n, 29n]]
+triplesWithHypotenuse(65);      // [[16n, 63n, 65n], [25n, 60n, 65n], [33n, 56n, 65n], [39n, 52n, 65n]]
+triplesWithLeg(12);             // [[12n, 5n, 13n], [12n, 9n, 15n], [12n, 16n, 20n], [12n, 35n, 37n]]
+```
+
+### Try it
+
+```js
+// the numbers below 50 that are not sums of two squares, and why the first few fail
+const no = [];
+for (let n = 1; n < 50; n++) if (!twoSquares(n)) no.push(n);
+PRINT(no.join(" "));
+PRINT(twoSquaresReason(45), twoSquaresReason(77));
+// Jacobi's formulas against direct counting
+PRINT([1, 5, 25, 65, 325, 1105].map((n) => [n, r2(n), rk(n, 2)]));
+PRINT([1, 2, 7, 12, 100].map((n) => [n, r4(n), rk(n, 4)]));
+// the smallest numbers with many representations as two squares
+[5n, 25n, 65n, 325n, 1105n, 5525n].map((n) => [n, twoSquaresAll(n).length])
+```
+
+---
+
+Page: https://ratmath.com/numtheory/diophantine.html
+
+Linear Diophantine equations
+
+## Linear Diophantine equations
+
+Equations to be solved in whole numbers. A linear one in many unknowns has a lattice of solutions, given by a basis; asking for non-negative solutions turns it into the coin problem, with its largest unpayable amount.
+
+### All the solutions at once
+
+a1​x1​+⋯+an​xn​=c has an integer solution exactly when g=gcd(a1​,…,an​) divides c (Bézout). The solutions are then a particular one plus any integer combination of n−1 basis vectors of the homogeneous solutions. The basis is found by unimodular column operations, the extended Euclidean algorithm run on a whole row, so it is a true lattice basis: every solution is reached, with integer coefficients.
+
+```js
+import { linearDiophantine, nonNegativeSolutions, frobenius, coinWays, egyptianGreedy, egyptianShortest } from "@ratmath/numtheory";
+
+linearDiophantine([6, 10, 15], 1);
+// { solvable: true, g: 1n, particular: [-14n, 7n, 1n], basis: [[-5n, 3n, 0n], [-30n, 15n, 2n]] }
+linearDiophantine([4, 6], 5);   // { solvable: false, g: 2n, reason: "gcd = 2 does not divide 5" }
+nonNegativeSolutions(5, 7, 100);   // { solutions: [[6n, 10n], [13n, 5n], [20n, 0n]] }
+```
+
+### The coin problem
+
+With coins of values a1​,…,an​ (gcd 1), every large enough amount can be paid. The largest that cannot is the Frobenius number. For two coins Sylvester found ab−a−b. For more there is no formula, but there is an algorithm: for each residue r modulo the smallest coin a1​, find the smallest payable amount ≡r, a shortest path in a graph on the residues; the Frobenius number is the largest of those, minus a1​.
+
+```js
+frobenius([3, 5]);         // 7n
+frobenius([6, 9, 20]);     // 43n: the McNugget number
+coinWays(100, [1, 5, 10, 25]);    // 242n ways to change a dollar
+```
+
+`coinWays` counts with the generating function ∏i​1/(1−xai​), adding one coin at a time.
+
+### Egyptian fractions
+
+Every positive fraction is a sum of distinct unit fractions. The greedy method (Fibonacci, Sylvester) takes the largest 1/n that fits: since the numerator of what is left strictly drops, it ends, but the denominators can explode. A search finds a shortest expansion instead.
+
+```js
+egyptianGreedy("4/13");     // [4n, 18n, 468n]
+egyptianShortest("4/13");   // [4n, 26n, 52n]
+egyptianGreedy("5/121");    // [25n, 757n, 763309n, 873960180913n, 1527612795642093418846225n]
+egyptianShortest("5/121");  // [33n, 121n, 363n]
+```
+
+Erdős and Straus conjectured that 4/n always needs at most three terms; it has been checked far beyond any n one could type here.
+
+### Try it
+
+```js
+// Frobenius numbers of two coins against Sylvester's formula
+PRINT([[3, 5], [4, 7], [5, 9], [8, 13]].map(([a, b]) => [a, b, frobenius([a, b]), a * b - a - b]));
+// what you cannot buy with nuggets in boxes of 6, 9 and 20
+const cant = [];
+for (let n = 1; n <= 43; n++) if (coinWays(n, [6, 9, 20]) === 0n) cant.push(n);
+PRINT(cant.join(" "));
+// every solution of 6x + 10y + 15z = 1, and a check of a few
+const s = linearDiophantine([6, 10, 15], 1);
+for (const [t, u] of [[0n, 0n], [1n, -2n], [5n, 7n]]) {
+  const x = s.particular.map((v, i) => v + t * s.basis[0][i] + u * s.basis[1][i]);
+  PRINT(x, 6n * x[0] + 10n * x[1] + 15n * x[2]);
+}
+// Erdős–Straus: 4/n in three terms
+[5, 7, 13, 17, 101].map((n) => [n, egyptianShortest(`4/${n}`)])
+```
+
+---
+
+Page: https://ratmath.com/numtheory/continued-fractions.html
+
+Continued fractions
+
+## Continued fractions
+
+Every real number is a₀ + 1/(a₁ + 1/(a₂ + …)) with whole numbers aₖ, written [a₀; a₁, a₂, …]. Rationals stop, quadratic irrationals repeat forever, and the cut-off fractions are the best rational approximations there are.
+
+These functions moved here from `@ratmath/algebraic`, which still provides the algebraic numbers they work on.
+
+### Exact terms for any algebraic number
+
+For an algebraic x, the root of p in an interval, the next term is t=⌊x⌋: shrink the interval until it lies between two integers. Then x=t+1/y, and y is a root of
+
+q(y)=ydp(t+1/y),
+p shifted by t with its coefficients reversed, in the interval mapped by y=1/(x−t). No digit of x is approximated, so every term is right. 32​=[1;3,1,5,1,1,4,1,…] shows no pattern, and nobody knows whether its terms are bounded.
+
+```js
+import { continuedFraction, convergents, periodicContinuedFraction, fromContinuedFraction, pell, fundamentalUnit } from "@ratmath/numtheory";
+import { nthRoot, sqrt, fromRational } from "@ratmath/algebraic";
+
+continuedFraction(nthRoot(fromRational(2), 3), 8);   // [1n, 3n, 1n, 5n, 1n, 1n, 4n, 1n]
+continuedFraction("103993/33102");                   // [3n, 7n, 15n, 1n, 292n]: a convergent of π
+convergents([1, 2, 2, 2]).map(String);               // ["1", "3/2", "7/5", "17/12"]
+```
+
+The convergents pk​/qk​ satisfy pk​=ak​pk−1​+pk−2​, qk​=ak​qk−1​+qk−2​, and ∣x−pk​/qk​∣<1/qk2​. Each is closer to x than any fraction with a smaller denominator. A large next term means an unusually good convergent: π's 355/113 comes right before the term 292.
+
+### Quadratic irrationals repeat
+
+Lagrange: the expansion is eventually periodic exactly when x is a quadratic irrational. Written as x=(P+D​)/Q with Q∣D−P2, each step is
+
+a=⌊QP+D​​⌋,P′=aQ−P,Q′=QD−P′2​,
+all in integers. Only finitely many pairs (P,Q) occur, so one repeats, and the period is read off exactly.
+
+```js
+periodicContinuedFraction(sqrt(fromRational(7)));   // { preperiod: [2n], period: [1n, 1n, 1n, 4n] }
+fromContinuedFraction([1], [2]);                    // √2 exactly: [1; 2, 2, 2, …]
+```
+
+### Pell's equation and units
+
+x2−Dy2=1 (D not a square) always has solutions, and the smallest comes from the period of D​: if the period has length L, the convergent just before the end of the first period gives p2−Dq2=(−1)L. For odd L that solves the −1 equation, and a second period solves the +1 equation. D=61 is Fermat's challenge to the English mathematicians. The same computation gives the fundamental unit ε>1 of the integers of Q(d​): every unit is ±εn (Dirichlet). The [Pell page](https://ratmath.com/numtheory/pell.html) solves x2−Dy2=N for any N.
+
+```js
+pell(61);              // { x: 1766319049n, y: 226153980n, negative: { x: 29718n, y: 3805n } }
+fundamentalUnit(94);   // { unit: 2143295 + 221064√94, norm: 1 }
+```
+
+### Try it
+
+```js
+PRINT("∛2 =", continuedFraction(nthRoot(fromRational(2), 3), 12));
+PRINT("√7 =", periodicContinuedFraction(sqrt(fromRational(7))));
+PRINT("convergents of √2:", convergents([1, 2, 2, 2, 2, 2]).map(String));
+PRINT("[1; 2, 2, …] =", format(fromContinuedFraction([1], [2])));
+// period lengths of √D, and where Pell's −1 equation is solvable (odd period)
+PRINT([2, 3, 5, 7, 13, 61, 94].map((D) => [D, periodicContinuedFraction(sqrt(fromRational(D))).period.length, pell(D).negative !== null]));
+const p = pell(61);
+PRINT("x² − 61y² = 1:", p.x, p.y);
+String(fundamentalUnit(94).unit)
+```
+
+---
+
+Page: https://ratmath.com/numtheory/pell.html
+
+Pell equations
+
+## Pell equations
+
+x² − Dy² = N. For D > 0 not a square the solutions come in finitely many families, each a fundamental solution multiplied over and over by the fundamental unit. Finding every family takes only a bounded search.
+
+### Families of solutions
+
+Write α=x+yD​, with norm N(α)=x2−Dy2. Norms multiply, so if α solves N(α)=N and ε=x1​+y1​D​ is the smallest solution of x2−Dy2=1, then every αεk is again a solution. Each class of solutions is one such orbit (up to sign), and there are finitely many classes.
+
+Nagell's bounds say each class has a member with
+
+0≤y≤2DN(x1​−1)​​  (N>0),D∣N∣​​≤y≤2D∣N∣(x1​+1)​​  (N<0),
+so a search over that range of y finds every class. `pellSolutions` returns those fundamental solutions, the unit, and a `solutions(count)` that walks the orbits in increasing size.
+
+```js
+import { pellSolutions } from "@ratmath/numtheory";
+
+const r = pellSolutions(2, 7);
+r.kind;                // "infinite"
+r.unit;                // [3n, 2n]: 3² − 2·2² = 1
+r.fundamental;         // [[3n, 1n], [3n, -1n]]: two classes
+r.solutions(5);        // [[3n, 1n], [5n, 3n], [13n, 9n], [27n, 19n], [75n, 53n]]
+
+pellSolutions(61, 1).unit;              // [1766319049n, 226153980n]
+pellSolutions(13, -1).fundamental;      // [[18n, 5n]]
+pellSolutions(3, 2).fundamental;        // []: x² − 3y² = 2 has no solutions (try mod 3)
+```
+
+### When there are finitely many
+
+For D the form x2+∣D∣y2 is positive definite, and for D a perfect square k2 it factors as (x−ky)(x+ky), so in both cases there are finitely many solutions and they are all listed.
+
+```js
+pellSolutions(-1, 25).solutions.length;   // 12: the points of x² + y² = 25
+pellSolutions(4, 5).solutions;           // [[-3n, -1n], [-3n, 1n], [3n, -1n], [3n, 1n]]
+```
+
+The same question in the language of number fields is the norm equation N(α)=n in the order Z[D​]; `normEquation` is a second name for it. The general theory, with class groups, is on the [quadratic forms](https://ratmath.com/numtheory/quadratic-forms.html) page.
+
+### Try it
+
+```js
+// every class of solutions of x² − 10y² = 6, and the first few of each size
+const r = pellSolutions(10, 6);
+PRINT("unit", r.unit, "fundamental", r.fundamental);
+for (const [x, y] of r.solutions(6)) PRINT(x, y, x * x - 10n * y * y);
+// which N in −20…20 occur as x² − 7y²?
+const hits = [];
+for (let N = -20; N <= 20; N++) {
+  if (N === 0) continue;
+  const s = pellSolutions(7, N);
+  if (s.fundamental.length) hits.push(N);
+}
+hits.join(" ")
+```
+
+---
+
+Page: https://ratmath.com/numtheory/quadratic-forms.html
+
+Binary quadratic forms
+
+## Binary quadratic forms
+
+ax² + bxy + cy², with whole coefficients. Gauss sorted them into classes under changes of variable, found that the classes of one discriminant form a group, and so opened the road to class groups of number fields.
+
+### Forms, discriminants and equivalence
+
+The form f=(a,b,c) has discriminant D=b2−4ac. A matrix M=(pr​qs​) of determinant 1 changes variables, f∘M(x,y)=f(px+qy, rx+sy), keeping D and the set of values. Forms related that way are properly equivalent, and represent the same numbers.
+
+```js
+import { form, equivalent, reducedForms, classNumber, classGroup, compose, represent, representations } from "@ratmath/numtheory";
+
+const f = form(10, 34, 29);
+f.discriminant;                // -4n
+const { form: g, matrix } = f.reduce();
+String(g);                     // "x² + y²"
+matrix;                        // [[-2n, 5n], [1n, -3n]]: f ∘ matrix = g, checked exactly
+equivalent([1, 0, 5], [2, 2, 3]);
+// { equivalent: false, reason: "they reduce to different forms, x² + 5y² and 2x² + 2xy + 3y²" }
+```
+
+### Reduction
+
+A positive definite form (D, a>0) is reduced when ∣b∣≤a≤c, with b≥0 if either inequality is an equality. Every class contains exactly one reduced form (Lagrange, Gauss), found by alternately swapping a,c and shifting b by multiples of 2a. Since ∣b∣≤a≤c forces 3a2≤∣D∣, there are finitely many, and counting them gives the class number h(D).
+
+```js
+reducedForms(-23).map(String);   // ["x² + xy + 6y²", "2x² − xy + 3y²", "2x² + xy + 3y²"]
+classNumber(-23);                // 3n
+classNumber(-163);               // 1n: the largest of Heegner's nine
+```
+
+For D>0 the form is indefinite and a class contains several reduced forms, arranged in a cycle by Gauss's ρ operator (a,b,c)↦(c,−b+2ck,…); the class is identified by its cycle. Then h is the narrow class number, which counts f and −f separately when no unit of norm −1 links them.
+
+```js
+form(1, 0, -14).cycle().map(String);   // ["x² + 6xy − 5y²", "−5x² + 4xy + 2y²", "2x² + 4xy − 5y²", "−5x² + 6xy + y²"]
+classNumber(12);                       // 2n: x² − 3y² and its negative are different classes
+```
+
+### The class group
+
+Gauss defined a composition of primitive forms of the same discriminant, under which the classes form a finite abelian group: the identity is the class of the principal form (1, Dmod2, ((Dmod2)−D)/4), the inverse of (a,b,c) is (a,−b,c). Composition here follows Shanks's formulas (Cohen's Algorithm 5.4.7) and reduces the result. `classGroup` also finds the structure as a product of cyclic groups.
+
+```js
+const G = classGroup(-84);
+G.h;                         // 4n
+G.forms.map(String);         // ["x² + 21y²", "2x² + 2xy + 11y²", "3x² + 7y²", "5x² + 4xy + 5y²"]
+G.structure;                 // [2n, 2n]: every class has order 2, Euler's idoneal numbers
+classGroup(-56).structure;   // [4n]: cyclic
+classGroup(-3299).structure; // [3n, 9n]
+String(compose([2, 1, 3], [2, 1, 3]));   // "2x² − xy + 3y²": in h(−23) = 3, the square is the inverse
+```
+
+The class numbers are checked in the tests against Dirichlet's class number formula h(D)=2∣D∣w​∑a=1∣D∣​−(aD​)a for every fundamental D down to −1500.
+
+### Representations
+
+A positive definite form takes each value finitely often: from 4af=(2ax+by)2+∣D∣y2, ∣y∣≤4an/∣D∣​. For any D, f properly represents n exactly when f is equivalent to some (n,b,⋅) with b2≡D(mod4n), and the first column of the equivalence matrix is then the representation.
+
+```js
+representations([1, 1, 6], 8);   // [[-2n, 1n], [-1n, -1n], [1n, 1n], [2n, -1n]]
+represent([1, 0, -2], 7);        // [-3n, 1n]: 9 − 2 = 7
+represent([1, 0, 5], 9);         // [2n, -1n]: 4 + 5 = 9
+```
+
+### Try it
+
+```js
+// the imaginary quadratic discriminants with class number 1 (Heegner, Baker, Stark)
+const one = [];
+for (let D = -3; D >= -200; D--) if (((D % 4) + 4) % 4 <= 1 && classNumber(D) === 1n) one.push(D);
+PRINT("h = 1:", one.join(" "));
+// a class group, its elements' orders and its structure
+const G = classGroup(-4620);
+PRINT("h(−4620) =", G.h, "structure", G.structure);
+PRINT(G.forms.slice(0, 8).map((f) => `${f}: order ${G.order(f)}`).join("\n"));
+// a form, a random change of variables, and back
+const f = form(3, 2, 5).transform([[7n, 3n], [2n, 1n]]);
+PRINT(String(f), "reduces to", String(f.reduce().form));
+equivalent(f, [3, 2, 5])
+```
+
+---
+
+Page: https://ratmath.com/numtheory/elliptic-curves.html
+
+Elliptic curves
+
+## Elliptic curves
+
+A cubic curve whose points can be added. Over the rationals the sum of two points with fraction coordinates is again one, exactly, and the questions become: which points come back to zero, how fast do the others grow, and what does the curve look like modulo each prime.
+
+### A curve and its points
+
+A curve is given by a Weierstrass equation y2+a1​xy+a3​y=x3+a2​x2+a4​x+a6​, written `[a1, a2, a3, a4, a6]`, or by the short form y2=x3+ax+b, written `[a, b]`. The discriminant must not be zero: a cubic with a node or a cusp is refused.
+
+```js
+import { ellipticCurve } from "@ratmath/numtheory";
+
+const E = ellipticCurve([0, 0, 1, -1, 0]);
+String(E);            // "y² + y = x³ − x"
+E.discriminant;       // 37
+E.j;                  // 110592/37
+
+const P = E.point(0, 0);          // checked to lie on the curve
+E.add(P, P);                      // (1, 0)
+E.mul(5, P);                      // (1/4, -5/8)
+E.mul(7, P);                      // (-5/9, 8/27)
+E.add(E.mul(5, P), E.mul(-5, P)); // { infinity: true }, the zero of the group
+```
+
+Points are `{ x, y }` with Core `Rational` coordinates; the point at infinity, which is the zero of the group, is `E.infinity`. Wherever a point is expected, `[x, y]` works too.
+
+### The group law
+
+A line meets a cubic in three points, counted properly. Declare that three points on a line add up to zero, with the point at infinity as zero. Then the negative of (x,y) is the other point on the vertical line through it, (x,−y−a1​x−a3​), and P+Q is the negative of the third point on the line through P and Q (the tangent line, when P=Q). With λ the slope of that line and ν its intercept,
+
+x3​=λ2+a1​λ−a2​−x1​−x2​,y3​=−(λ+a1​)x3​−ν−a3​.
+That this is associative is not obvious and is a theorem; the tests check it on thousands of triples. `mul(k, P)` uses doubling and adding, so the millionth multiple takes about forty steps, though its coordinates are enormous: the number of digits of kP grows like k2, which is what the [height](#heights) measures.
+
+### Torsion
+
+A point of finite order is a torsion point. Two theorems make the torsion of a curve over Q computable. Nagell–Lutz: on a model y2=x3+Ax+B with whole A,B, a torsion point has whole coordinates and either y=0 or y2 divides 4A3+27B2. Mazur: the torsion group is one of fifteen, Z/n for n=1,…,10,12 or Z/2×Z/2n for n=1,…,4; in particular no point has finite order above 12.
+
+```js
+const T = ellipticCurve([1, 0, 1, -19, 26]);   // y² + xy + y = x³ − 19x + 26
+T.torsion().structure;    // [2, 6]: the group is Z/2 × Z/6
+T.torsion().points;       // O, (-5, 2), (-2, -7), (-2, 8), (1, -4), (1, 2), (7/4, -11/8), (3, -2), (4, -7), (4, 2), (13, -52), (13, 38)
+T.torsion().generators;   // [(-5, 2), (-2, 8)], of orders 2 and 6
+
+const S = ellipticCurve([-43, 166]);           // y² = x³ − 43x + 166
+S.order(S.point(3, 8));   // 7n
+E.order(P);               // Infinity: (0, 0) on y² + y = x³ − x never returns
+```
+
+`torsion()` moves to a short integral model, lists the candidate y from the divisors of 4A3+27B2, finds the whole roots x of each cubic, and keeps a candidate only if one of its first twelve multiples is zero. Note (7/4,−11/8) above: on the long model torsion points need not have whole coordinates; on the short model they do. The tests compare every answer with the curve modulo primes, since torsion embeds in E(Fp​) at each odd prime of good reduction.
+
+### Minimal models and reduction
+
+The same curve has many equations: x=u2x′+r, y=u3y′+u2sx′+t gives another, with discriminant divided by u12. Among the equations with whole coefficients there is one with the smallest discriminant, and it is unique once a1​,a3​∈{0,1} and a2​∈{−1,0,1}.
+
+```js
+const M = ellipticCurve([-432, 8208]);     // y² = x³ − 432x + 8208
+M.discriminant;                            // -23944605696 = −2¹² · 3¹² · 11
+const min = M.minimalModel();
+String(min.curve);                         // "y² + y = x³ − x²"
+min.curve.discriminant;                    // -11
+min.u;                                     // 6
+min.to(M.point(-12, 108));                 // (0, 0): points are carried along
+```
+
+Modulo a prime p, the minimal model is either still an elliptic curve (good reduction, when p does not divide the minimal discriminant), or it gets a node (multiplicative reduction) or a cusp (additive). A node is split when its two tangent directions are defined over Fp​.
+
+```js
+M.badPrimes();       // [11n]
+M.reduction(11);     // { prime: 11n, type: "multiplicative", split: true, discriminantValuation: 1, conductorExponent: 1 }
+M.conductor();       // 11n: this is the curve of smallest conductor
+E.reduction(37);     // multiplicative, split: false
+ellipticCurve([-1, 0]).reduction(2);   // additive; conductorExponent: null
+```
+
+The conductor multiplies p for each multiplicative prime and p2 for each additive prime p≥5. At 2 and 3 an additive prime can have a larger exponent, which takes Tate's algorithm to find; that is not here, so the exponent is reported as `null` and `conductor()` refuses rather than guess. Kodaira symbols and Tamagawa numbers are likewise not computed.
+
+How the minimal model is found: at each prime the largest possible u is tried, and the candidate invariants (c4​,c6​) either belong to an equation with whole coefficients, which is then written down and checked, or they do not. Nothing is taken from a table of conditions.
+
+### Heights
+
+The naive height of a point is H(P)=max(∣p∣,∣q∣) for x(P)=p/q. Doubling a point roughly raises H to the fourth power, and the canonical height makes that exact:
+
+h^(P)=n→∞lim​4nlogH(2nP)​,h^(kP)=k2h^(P),h^(P)=0⟺P is torsion.
+It is a quadratic form on the group, and it is how independence of points is measured. (This normalisation is the one used in the Birch and Swinnerton-Dyer conjecture and in the tables; Silverman's book uses half of it.)
+
+```js
+E.naiveHeight(E.mul(7, P));         // 9n: x = -5/9
+E.height(P);                        // { lower: 0.05021…, upper: 0.05193…, exact: false }
+E.height(P, { doublings: 8 });      // { lower: 0.051052…, upper: 0.051160… }
+T.height(T.point(1, 2));            // { lower: 0, upper: 0, exact: true }: a torsion point
+```
+
+The bounds are Rationals and they are proved, for the curve at hand. On the short model y2=x3+Ax+B, with x=p/q,
+
+x(2Q)=Ψ(p,q)Φ(p,q)​,Φ=p4−2Ap2q2−8Bpq3+A2q4,Ψ=4q(p3+Apq2+Bq3).
+So H(2Q)≤κH(Q)4 with κ the larger coefficient sum. The other direction needs to know that Φ and Ψ cannot both be small or share a large factor. Because they have no common root, there are cubic forms with FΦ+GΨ=cp7 and F′Φ+G′Ψ=c′q7; the library finds them by solving an 8 by 8 linear system exactly. They show that gcd(Φ,Ψ) divides lcm(c,c′) and that max(∣Φ∣,∣Ψ∣)≥ρH(Q)4 for an explicit ρ. Hence logρ≤logH(2Q)−4logH(Q)≤logκ for every point, and summing the geometric series,
+
+31​logρ≤h^(Q)−logH(Q)≤31​logκ.
+Applied to Q=2nP and divided by 4n, this encloses h^(P) in an interval whose width shrinks by 4 with each doubling. The logarithms of the large whole numbers are themselves enclosed between Rationals. For the point above, the known value is 0.0511114082…, the regulator of this curve.
+
+### Searching for points, and what is not here
+
+`rationalPoints(bound)` lists the points whose x-coordinate has small height on the short model, by trying every candidate. It is a search: it shows points, and it proves nothing about the ones it did not reach. The rank of a curve, the number of independent points of infinite order, is not computed; no algorithm is known that always finds it.
+
+```js
+E.rationalPoints(10);   // (-1, -1), (-1, 0), (0, -1), (0, 0), (1/4, -5/8), (1/4, -3/8), (1, -1), (1, 0), (2, -3), (2, 2), …
+```
+
+For curves over finite fields, see [Counting points](https://ratmath.com/numtheory/point-counting.html); for what curves do for factoring and primality, see [The elliptic curve method](https://ratmath.com/numtheory/ecm.html) and [Elliptic curve certificates](https://ratmath.com/numtheory/elliptic-certificates.html).
+
+### Try it
+
+```js
+// multiples of a point of infinite order: the digits grow like k²
+const E = ellipticCurve([0, 0, 1, -1, 0]);
+const P = E.point(0, 0);
+const show = (Q) => (Q.infinity ? "O" : `(${Q.x}, ${Q.y})`);
+for (const k of [1, 2, 3, 4, 5, 6, 7, 8, 16, 32]) {
+  const Q = E.mul(k, P);
+  PRINT(k, k <= 8 ? show(Q) : "", "digits of H:", String(E.naiveHeight(Q)).length);
+}
+const h = E.height(P, { doublings: 7 });
+PRINT("ĥ(P) between", h.lower.toNumber(), "and", h.upper.toNumber());
+
+// torsion of a few curves, and the same curves modulo small primes
+for (const cs of [[0, 1], [-1, 0], [-43, 166], [1, 0, 1, -19, 26], [1, 0, 0, -1070, 7812]]) {
+  const C = ellipticCurve(cs);
+  const T = C.torsion();
+  // torsion embeds in E(F_p) at every odd prime of good reduction, so its order divides each count
+  const good = [5n, 7n, 11n, 13n, 17n, 19n].filter((p) => !C.badPrimes().includes(p)).slice(0, 3);
+  PRINT(String(C), " torsion", T.structure, " points mod", good.join(", ") + ":", good.map((p) => C.modulo(p).count()).join(", "));
+}
+
+// a messy equation and its minimal model
+const M = ellipticCurve([-432, 8208]);
+const min = M.minimalModel();
+PRINT(String(M), "→", String(min.curve), "u =", min.u, " conductor", M.conductor());
+M.reduction(11)
+```
+
+---
+
+Page: https://ratmath.com/numtheory/point-counting.html
+
+Counting points
+
+## Counting points
+
+Over the field of p elements a curve has finitely many points, and they still form a group. How many there are is the question behind elliptic curve cryptography, factoring and primality proving. Three methods, each faster and subtler than the last, and each a proof.
+
+### A curve over Fp
+
+```js
+import { ellipticCurve } from "@ratmath/numtheory";
+
+const C = ellipticCurve([2, 3], { mod: 97 });   // y² = x³ + 2x + 3 over F_97
+C.count();            // 100n, counting the point at infinity
+C.trace();            // -2n: #E = p + 1 − t
+C.points().length;    // 99
+C.liftX(3);           // [(3, 6), (3, 91)]
+const P = C.point(3, 6);
+C.add(P, P);          // (80, 10)
+C.order(P);           // 5n
+C.structure();        // { order: 100n, structure: [2n, 50n] }: the group is Z/2 × Z/50
+```
+
+Coordinates are BigInt residues. The modulus must be prime (proven: above 264 a certificate is found first). Every Weierstrass form works, including p=2 and p=3, where the short form does not exist. A curve over Q reduces with `curve.modulo(p)`.
+
+### Hasse's theorem
+
+About half of the x give a square on the right-hand side and so two points, which suggests about p+1 points in all. Hasse proved the error is small:
+
+#E(Fp​)=p+1−t,∣t∣≤2p​.
+The number t is the trace of Frobenius: the map φ(x,y)=(xp,yp) sends the curve to itself and satisfies φ2−tφ+p=0. The group is always Z/n1​×Z/n2​ with n1​∣n2​ and n1​∣p−1; `structure()` proves it cyclic at once when no square factor of the order is compatible with that, and otherwise decides by the orders of all points, for small p.
+
+### Three ways to count
+
+```js
+const B = ellipticCurve([2, 3], { mod: 1000003 });
+B.count({ method: "naive" });    // 999708n
+B.count({ method: "bsgs" });     // 999708n
+B.count({ method: "schoof" });   // 999708n
+```
+
+The character sum. #E=p+1+∑x​χ(x3+ax+b), where χ is the Legendre symbol. One table of squares and one pass over x: about p steps, fine up to a few million.
+
+Baby steps and giant steps. The order of any point P divides #E, and #E lies in the Hasse interval, which has length 4p​. Shanks's method finds a multiple of the order of P inside that interval in about p1/4 steps: store jP for small j and stride through the interval. From the multiple, the exact order follows by removing primes. One point may not settle it, because several multiples of its order can fit in the interval. Mestre's remedy is to work on the curve and on its quadratic twist together (their counts add up to 2p+2): he showed that for p>229 one of the two has a point whose order has a single multiple in the interval. The count is accepted only when that uniqueness has been checked, so it is a proof.
+
+Schoof's algorithm. Polynomial in logp. For a small prime l, the equation φ2−tφ+p=0 is tested on the points of order l: tmodl is the one τ for which
+
+φ2(P)+[pmodl]P=[τ]φ(P)for every P of order l.
+The points of order l are never found. They are the roots of the division polynomial ψl​, of degree (l2−1)/2, and all of them are handled at once by computing with polynomials modulo ψl​ and the curve equation. Enough primes l, with product above 4p​, determine t by the Chinese remainder theorem.
+
+```js
+const big = ellipticCurve([2, 3], { mod: 1000000007 });
+const log = [];
+big.count({ method: "schoof", log });   // 1000004178n
+big.trace();                            // -4170n
+log;   // [{ l: 2, t: 0 }, { l: 3, t: 0 }, { l: 5, t: 0 }, { l: 7, t: 2 }, { l: 11, t: 10 }, { l: 13, t: 3 }, { l: 17, t: 12 }]
+```
+
+−4170 is indeed 0mod2,3,5, 2mod7, 10mod11, 3mod13 and 12mod17, and 2⋅3⋅5⋅7⋅11⋅13⋅17=510510 exceeds 4p​≈126491. One subtlety: ψl​ need not be irreducible, so a division modulo it can fail. When it does, the failure hands over a factor of ψl​, and the computation is repeated modulo the factor; any factor will do, because the equation holds at every point of order l.
+
+With `method: "auto"` (the default) the character sum is used below 222, baby steps and giant steps below 272, and Schoof above. The implementation of Schoof here uses schoolbook polynomial arithmetic and is meant to be read: it takes about a second at p≈1012 and grows quickly from there. The Elkies and Atkin improvements that make it fast for cryptographic sizes are not here.
+
+### Division polynomials
+
+```js
+C.divisionPolynomial(3);   // [93n, 36n, 12n, 0n, 3n]: 3x⁴ + 12x² + 36x + 93 = 3x⁴ + 6ax² + 12bx − a² mod 97
+```
+
+The roots of the n-th division polynomial are the x-coordinates of the points P=O with nP=O. For even n the full ψn​ is 2y times the polynomial returned, the factor y accounting for the points of order 2.
+
+### A key exchange
+
+In a group where multiplying is easy and undoing it is hard, two people can agree on a secret in public: each picks a secret number, publishes that multiple of a base point, and multiplies the other's point by their own number. With toy sizes it looks like this; real curves have about 2256 points and standardised parameters, and real implementations must also resist timing attacks, which this code does not try to do.
+
+### Try it
+
+```js
+// the three counting methods agree
+const p = 1000003n;
+for (const [a, b] of [[2, 3], [1, 1], [0, 7], [5, 0]]) {
+  const C = ellipticCurve([a, b], { mod: p });
+  PRINT(String(C), C.count({ method: "naive" }), C.count({ method: "bsgs" }), C.count({ method: "schoof" }), " t =", C.trace());
+}
+
+// Schoof, one small prime at a time
+const big = ellipticCurve([2, 3], { mod: 1000000007 });
+const log = [];
+PRINT("#E =", big.count({ method: "schoof", log }), " t mod l:", log.map(({ l, t }) => `${t} mod ${l}`).join(", "));
+
+// group structures over F_101
+for (const cs of [[1, 0], [0, 1], [2, 3], [1, 1]]) {
+  const C = ellipticCurve(cs, { mod: 101 });
+  PRINT(String(C), C.structure().structure);
+}
+
+// a Diffie–Hellman exchange on a curve over a 61-bit field (a toy: far too small to be secure)
+const E = ellipticCurve([2, 3], { mod: 2n ** 61n - 1n });
+const G = E.randomPoint(5);
+const [alice, bob] = [123456789123456789n, 987654321987654321n];
+const [A, B] = [E.mul(alice, G), E.mul(bob, G)];   // these are published
+PRINT("shared secret:", E.mul(alice, B).x, E.equal(E.mul(alice, B), E.mul(bob, A)));
+E.count()
+```
+
+---
+
+Page: https://ratmath.com/numtheory/number-fields.html
+
+Number fields
+
+## Rings of integers
+
+In Q(5​) the number (1+5​)/2 is a root of x2−x−1: it has a denominator, yet it behaves like a whole number. The algebraic integers of a number field form a ring, a lattice of rank n inside the field, and finding a basis of it is the first step of everything else: discriminants, prime ideals, class groups, units.
+
+### A field and its integers
+
+A number field is K=Q(α) for a root α of an irreducible polynomial; here it is a `NumberField` from `@ratmath/algebraic` (re-exported), or just the coefficients of the polynomial, constant first. An element of K is an algebraic integer when it is a root of a monic polynomial with whole coefficients. They form the ring OK​, and OK​ has a basis ω1​=1,ω2​,…,ωn​ over Z: an integral basis.
+
+```js
+import { NumberField, ringOfIntegers } from "@ratmath/numtheory";
+
+const K = new NumberField([-8n, -2n, -1n, 1n]);   // α³ − α² − 2α − 8 = 0, Dedekind's field
+const O = ringOfIntegers(K);
+O.basis;            // 1, α, (1/2)α + (1/2)α²
+O.discriminant;     // -503n
+O.index;            // 2n: Z[α] has index 2 in the ring of integers
+O.signature;        // [1, 1]: one real embedding, one pair of complex ones
+
+O.contains(K.gen.mul(K.gen).add(K.gen).div(K.of(2n)));   // true: (α² + α)/2 is an integer
+O.coordinates(K.gen.mul(K.gen));                         // 0, -1, 2: α² = −ω₂ + 2ω₃
+String(O.element([0, 0, 1]));                            // "(1/2)α + (1/2)α²"
+```
+
+The quadratic case is the familiar one: Z[d​] when d≡2,3(mod4), and Z[(1+d​)/2] when d≡1(mod4).
+
+```js
+ringOfIntegers(NumberField.quadratic(5)).basis;     // 1, 1/2 + (1/2)√5
+ringOfIntegers(NumberField.quadratic(-5)).basis;    // 1, √(-5)
+ringOfIntegers([-19n, 0n, 0n, 1n]).basis;           // 1, α, 1/3 + (1/3)α + (1/3)α²   (α³ = 19)
+```
+
+### The discriminant
+
+The discriminant of the field is dK​=det(Tr(ωi​ωj​)), the squared volume of the lattice OK​. It does not depend on the basis. For the lattice Z[α] the same determinant is the discriminant of the polynomial, and the two differ by the square of the index:
+
+disc(f)=[OK​:Z[α]]2⋅dK​.
+So only primes whose square divides disc(f) can divide the index. For Dedekind's field, disc(f)=−2012=−22⋅503, and the index is 2.
+
+```js
+O.polyDiscriminant;     // -2012n
+O.traceMatrix;          // [[3, 1, 3], [1, 5, 18], [3, 18, 29]], with determinant −503
+fieldDiscriminant([1n, 1n, 1n, 1n, 1n]);    // 125n: the fifth roots of unity
+fieldDiscriminant([-2n, 0n, 0n, 0n, 1n]);   // -2048n: Q(⁴√2)
+O.ramifiedPrimes;       // [503n]: the primes dividing the discriminant
+```
+
+### How the basis is found: Round 2
+
+Start with the order O=Z[θ], where θ is α scaled to be integral, and enlarge it one prime at a time. For a prime p, let Ip​ be the radical of pO: the elements with some power in pO. The theorem of Pohst and Zassenhaus says that
+
+O′={x∈K:xIp​⊆Ip​}
+is an order containing O, and that O′=O exactly when O is already maximal at p. Both steps are linear algebra over Fp​. The radical is the kernel of x↦xpk on O/pO once pk≥n (or of the trace form when p>n), and O′ comes from the kernel of the map sending x to multiplication by x on Ip​/pIp​. Repeat until nothing grows, for each p with p2∣disc(f).
+
+```js
+O.steps;
+// [{ p: 2n, exponent: 2, indexExponent: 1, rounds: 1, note: "the order grows by index 2 in 1 round" }]
+
+ringOfIntegers([-19n, 0n, 0n, 1n]).steps.map((s) => s.note);
+// ["the order grows by index 3 in 1 round", "already maximal at 19"]
+```
+
+The polynomial need not be monic or have whole coefficients: the generator is rescaled inside, and `O.scale` says by how much. The discriminant of the polynomial has to be factored, which is the one step that can be slow for large coefficients.
+
+### Why Dedekind's field is famous
+
+One might hope that OK​=Z[β] for a well-chosen β, as in quadratic fields. In Dedekind's field no β works. The prime 2 splits into three different prime ideals of norm 2 (see [Prime ideals](https://ratmath.com/numtheory/prime-ideals.html)); if OK​ were Z[β], those primes would correspond to three different linear factors of a cubic modulo 2, and there are only two linear polynomials modulo 2. So every Z[β] has even index.
+
+Next: how primes factor in OK​, in [Prime ideals](https://ratmath.com/numtheory/prime-ideals.html); then [Class groups](https://ratmath.com/numtheory/class-groups.html) and [Units](https://ratmath.com/numtheory/units.html).
+
+### Try it
+
+```js
+// pure cubic fields Q(∛m): the integral basis depends on m mod 9
+for (const m of [2, 3, 5, 6, 7, 10, 12, 17, 19, 26, 28]) {
+  const O = ringOfIntegers([BigInt(-m), 0n, 0n, 1n]);
+  PRINT(`m = ${m}`.padEnd(8), `disc ${O.discriminant}`.padEnd(12), `index ${O.index}`.padEnd(9), O.basis.join(",  "));
+}
+```
+
+---
+
+Page: https://ratmath.com/numtheory/prime-ideals.html
+
+Number fields
+
+## Prime ideals
+
+In Z[−5​], 6=2⋅3=(1+−5​)(1−−5​), and none of the four factors can be broken further. Unique factorisation of numbers is lost. It comes back for ideals: every ideal is a product of prime ideals in exactly one way.
+
+### How a prime decomposes
+
+In the ring of integers O of a field of degree n, a rational prime p generates an ideal that factors as
+
+pO=P1e1​​⋯Pgeg​​,i∑​ei​fi​=n,
+where fi​ is the residue degree, O/Pi​≅Fpfi​​, and ei​ the ramification index. The prime is inert when pO is itself prime, ramified when some ei​>1 (exactly the primes dividing the discriminant), and splits completely when there are n primes of degree 1.
+
+```js
+import { NumberField, ringOfIntegers } from "@ratmath/numtheory";
+
+const K = NumberField.quadratic(-5);
+const O = ringOfIntegers(K);
+O.describePrime(2).text;     // "2·O = (2, 1 + √(-5))²"                    ramified
+O.describePrime(3).text;     // "3·O = (3, 1 + √(-5)) · (3, 2 + √(-5))"    splits
+O.describePrime(11).text;    // "11·O = (11)"                              inert
+
+const [P2] = O.primesAbove(2);
+[P2.p, P2.e, P2.f, P2.norm];   // [2n, 2, 1, 2n]
+P2.generators;                 // 2, 1 + √(-5): every prime ideal has two generators, one of them p
+```
+
+### Dedekind and Kummer
+
+When p does not divide the index [O:Z[α]], the decomposition can be read from the polynomial: factor f modulo p,
+
+f≡g1e1​​⋯grer​​(modp)⟹Pi​=(p, gi​(α)),fi​=deggi​.
+For Q(−5​): x2+5≡(x+1)2(mod2), ≡(x+1)(x+2)(mod3), and it is irreducible modulo 11. That is the table above.
+
+When p divides the index the recipe fails, and Dedekind's cubic x3−x2−2x−8 is the standard example: modulo 2 the polynomial is x2(x+1), which suggests a ramified prime, while in truth 2 splits completely.
+
+```js
+const D = ringOfIntegers(new NumberField([-8n, -2n, -1n, 1n]));
+D.describePrime(2).text;
+// "2·O = (2, (3/2)α + (1/2)α²) · (2, 1 + (1/2)α + (1/2)α²) · (2, 1 + α)"
+D.primesAbove(2).map((P) => [P.e, P.f]);     // [[1, 1], [1, 1], [1, 1]]
+D.describePrime(503).text;                   // "503·O = (503, 204 + α) · (503, 149 + α)²"
+D.describePrime(5).text;                     // "5·O = (5, 4 + α) · (5, 3 + α²)": degrees 1 and 2
+```
+
+The library does not use the recipe as its method. For every prime it splits the finite ring A=O/pO directly: the radical of A is found as in Round 2; modulo the radical, A is a product of fields, one for each prime, and the elements fixed by x↦xp form a copy of Fpg​ whose idempotents cut the product apart. The ramification index of each prime is then the valuation of p. When the recipe applies, the second generator shown is the one it gives.
+
+### Ideals
+
+An ideal is kept as a basis over Z in Hermite normal form, so two ideals are equal exactly when their matrices are. Its norm is the index [O:I], and the norm of a principal ideal is the absolute value of the norm of its generator.
+
+```js
+const I = O.ideal(6);
+String(I);              // "(2, 1 + √(-5))² · (3, 1 + √(-5)) · (3, 2 + √(-5))"
+I.norm;                 // 36
+
+const A = O.ideal(K.of([[1n, 1n], [1n, 1n]]));   // the ideal generated by 1 + √−5
+String(A);              // "(2, 1 + √(-5)) · (3, 1 + √(-5))"
+A.norm;                 // 6
+
+const [P3, Q3] = O.primesAbove(3);
+const J = P2.toIdeal().mul(P3);
+J.equals(A);                         // true
+J.basis;                             // 6, 1 + √(-5)
+J.mul(J.inverse()).isOne;            // true: fractional ideals form a group
+P3.toIdeal().add(Q3).isOne;          // true: different primes are coprime
+P2.toIdeal().pow(2).equals(O.ideal(2));   // true
+```
+
+So the two factorisations of 6 are the same four prime ideals grouped in two ways: 2=P22​, 3=P3​Q3​, 1+−5​=P2​P3​, 1−−5​=P2​Q3​. The numbers 2, 3 and 1±−5​ are irreducible because P2​, P3​, Q3​ are not principal, which is the subject of [Class groups](https://ratmath.com/numtheory/class-groups.html).
+
+### Valuations
+
+The exponent of a prime P in an element or an ideal is its valuation vP​. It is computed with one multiplication per step: there is an element τ with τP⊆pO but τ∈/pO, and vP​(x) is the number of times x can be multiplied by τ/p and stay integral.
+
+```js
+P2.valuation(8);                              // 6: 8 = 2³ and 2 = P₂²
+P2.valuation(K.of([[1n, 1n], [1n, 1n]]));     // 1
+P2.valuation(K.of([[1n, 4n]]));               // -4: valuations of fractions are negative
+P2.valuation(I);                              // 2
+I.factor().map((f) => [String(f.prime), f.exponent]);
+// [["(2, 1 + √(-5))", 2], ["(3, 1 + √(-5))", 1], ["(3, 2 + √(-5))", 1]]
+```
+
+Factoring an ideal needs only the factorisation of its norm into rational primes: the primes above those are the only candidates, and a valuation settles each.
+
+### Try it
+
+```js
+// how the primes up to 60 behave in Q(∛2): the pattern follows p mod 3 and whether 2 is a cube mod p
+const O = ringOfIntegers([-2n, 0n, 0n, 1n]);
+for (const p of primes(60)) {
+  const d = O.describePrime(p);
+  PRINT(String(p).padStart(2), d.kind.padEnd(18), d.primes.map((P) => `e=${P.e} f=${P.f}`).join(",  "));
+}
+```
+
+---
+
+Page: https://ratmath.com/numtheory/class-groups.html
+
+Number fields
+
+## Class groups
+
+The class group measures how far a ring of integers is from unique factorisation. Its elements are the ideals up to multiplication by a number; it is finite; it is trivial exactly when every ideal is principal. Here it is computed with a proof, not a heuristic.
+
+### The group
+
+Two ideals are in the same class when one is the other times a field element. Classes multiply, the principal ideals are the identity class, and the resulting group Cl(K) is finite. Its order is the class number h.
+
+```js
+import { NumberField, idealClassGroup, ringOfIntegers } from "@ratmath/numtheory";
+
+const K = NumberField.quadratic(-5);
+const cl = idealClassGroup(K);
+cl.h;              // 2n
+cl.structure;      // [2n]: a cyclic group of order 2
+cl.generators;     // [(2, 1 + √(-5))], as an Ideal
+cl.proven;         // true
+
+const O = ringOfIntegers(K);
+const [P2] = O.primesAbove(2);
+const [P3] = O.primesAbove(3);
+cl.classOf(P2);                    // [1n]: the non-trivial class
+cl.isPrincipal(P2);                // { principal: false, generator: null }
+cl.isPrincipal(P2.toIdeal().mul(P3));
+// { principal: true, generator: 1 + √(-5) }
+```
+
+`structure` lists invariant factors d1​∣d2​∣⋯: the group is Z/d1​×Z/d2​×⋯, with one generator ideal for each. `classOf` gives the exponents of an ideal's class on those generators.
+
+```js
+const C = idealClassGroup([-65n, 0n, 0n, 1n]);     // Q(∛65)
+String(C);          // "class group of Q(α), α a root of x³ − 65: C3 × C6, h = 18"
+C.structure;        // [3n, 6n]
+
+const [T] = C.order.primesAbove(2);
+C.classOf(T);       // [1n, 5n]
+C.orderOf(T);       // 6n
+String(C.isPrincipal(T.toIdeal().pow(6)).generator);   // "49 + 24α − 9α²"
+```
+
+### Minkowski's bound
+
+Geometry of numbers shows that every class contains an ideal of norm at most
+
+MK​=nnn!​(π4​)r2​∣dK​∣​.
+So the prime ideals of norm up to MK​ generate the class group, and there are finitely many. For Q(−5​) the bound is 2.8: the single prime above 2 generates everything, and it is not principal because a2+5b2=2 has no solution. That is the whole computation by hand.
+
+```js
+minkowskiBound(NumberField.quadratic(-5));       // 2n
+minkowskiBound(NumberField.quadratic(-163));     // 8n: and 2, 3, 5, 7 are all inert, so h = 1
+minkowskiBound([-65n, 0n, 0n, 1n]);              // 95n
+C.factorBase.length;                             // 44 prime ideals above the primes up to 95
+```
+
+### Relations
+
+Call the generating primes P1​,…,Pk​. An element x whose norm has only small prime factors gives a relation: (x)=∏Piai​​ means ∑ai​[Pi​]=0 in the class group. The relations form a lattice Λ⊆Zk, and
+
+Cl(K)≅Zk/Λall​,
+where Λall​ is the lattice of all relations. The library searches short vectors of O and of the primes themselves for elements with smooth norm, reduces the lattice they span, and reads off the Smith normal form. If the lattice found is Λ, its index h′ is a multiple of h: relations can be missing, never wrong.
+
+### Certifying the answer
+
+Systems such as PARI and Sage compute class groups quickly by assuming the generalised Riemann hypothesis, and offer a separate certification step. Here the certification is part of the answer, and no hypothesis is used.
+
+The kernel of the relations gives units, with regulator R′ (see [Units](https://ratmath.com/numtheory/units.html)). Let G be the group generated by all relation elements and the roots of unity. Inside the group of all numbers supported on P1​,…,Pk​, the index of G is
+
+hh′​⋅RR′​.
+A prime ℓ divides this index exactly when some element of G is an ℓ-th power in K without being an ℓ-th power in G. That can be refuted: reduce G modulo a prime ideal q of degree 1 with ℓ∣q−1; raising to the power (q−1)/ℓ gives a homomorphism G/Gℓ→Z/ℓ, which kills every true ℓ-th power. Once as many independent such maps are found as the dimension of G/Gℓ, no hidden ℓ-th power exists.
+
+- For each prime ℓ dividing h′, this test is run on G.
+
+- Any other prime can only divide R′/R. Friedman proved that the regulator of every number field is at least 0.2052, so R′/R≤R′/0.2052, and for the primes ℓ up to that bound the same test is run on the units.
+
+When every test passes, h′=h and R′=R. A test that fails says more than no: it names a product of the generators that every map takes for an ℓ-th power. The library takes the ℓ-th root of that product in the field (numerically at each embedding, then checked exactly), adds the root to the relation elements, and runs the computation again. The certificate counts these under `rootsTaken`.
+
+```js
+C.certificate;
+// { method: "saturation", minkowskiBound: 95n, relations: 68, regulatorLowerBound: 0.2052,
+//   unitIndexBound: 18, classNumberPrimes: [2, 3], primesChecked: 7, rootsTaken: 0 }
+
+// the first relations found for Q(⁴√30) give 8; the test at 2 fails, and a square root brings it to 4
+idealClassGroup([-30n, 0n, 0n, 0n, 1n], { certify: false }).h;    // 8n, marked proven: false
+idealClassGroup([-30n, 0n, 0n, 0n, 1n]).h;                        // 4n, proven
+```
+
+Options: `certify: false` skips the proof (the result then has `proven: false`, and the true class number divides the one shown); `maxBound` (default 2000) refuses fields whose Minkowski bound is larger, since the number of primes grows with it; `maxIndexPrime` caps the primes ℓ tested. A cubic field with Minkowski bound near 100 takes about half a second; bound 1500 takes ten.
+
+### Quadratic fields and forms
+
+For a quadratic field the classes of ideals correspond to classes of [binary quadratic forms](https://ratmath.com/numtheory/quadratic-forms.html) of the same discriminant, and there the class number is found by listing reduced forms, with no search. Quadratic fields are certified that way: the relation computation has to agree with the count of forms. For a real quadratic field, forms give the narrow class number, which is twice the class number when the fundamental unit has norm +1.
+
+```js
+const R = idealClassGroup(NumberField.quadratic(79));
+R.h;                                // 3n
+R.certificate.narrowClassNumber;    // 6n: the fundamental unit 80 + 9√79 has norm +1
+
+const F = NumberField.quadratic(-23);
+const I = formToIdeal([2, 1, 3], F);   // the form 2x² + xy + 3y² as an ideal
+String(I);                             // "(2, 3/2 + (1/2)√(-23))"
+idealClassGroup(F).orderOf(I);         // 3n
+```
+
+For imaginary quadratic fields the class number is also a special value of an L-function, h=L(0,χD​) when D: see [Zeta and L values](https://ratmath.com/numtheory/l-values.html).
+
+### Try it
+
+```js
+// class groups of the pure cubic fields Q(∛m), each one proven
+for (const m of [2, 7, 11, 19, 20, 43, 63, 65, 113]) {
+  const cl = idealClassGroup([BigInt(-m), 0n, 0n, 1n]);
+  const s = cl.structure.length ? cl.structure.map((d) => `C${d}`).join(" × ") : "trivial";
+  PRINT(`∛${m}`.padEnd(6), `h = ${cl.h}`.padEnd(8), s.padEnd(10), `bound ${cl.minkowskiBound}`.padEnd(10), `primes tested: ${cl.certificate.primesChecked}`, cl.certificate.rootsTaken ? `roots taken: ${cl.certificate.rootsTaken}` : "");
+}
+```
+
+---
+
+Page: https://ratmath.com/numtheory/units.html
+
+Number fields
+
+## Units
+
+The units of a ring of integers are the elements of norm ±1. Dirichlet's theorem says what the group looks like: finitely many roots of unity, times a free group whose rank is fixed by the number of real and complex embeddings. Finding generators is harder than knowing they exist.
+
+### Dirichlet's unit theorem
+
+If K has r1​ real embeddings and r2​ pairs of complex ones, then
+
+OK×​≅μw​×Zr,r=r1​+r2​−1,
+where μw​ is the group of roots of unity in K. A set of r units generating the free part is a system of fundamental units.
+
+```js
+import { NumberField, unitGroup } from "@ratmath/numtheory";
+
+const U = unitGroup(NumberField.quadratic(2));
+U.rank;                 // 1
+U.torsionOrder;         // 2: the roots of unity are ±1
+U.fundamentalUnits;     // [1 + √2]
+U.regulator;            // 0.881373587019543 = ln(1 + √2)
+
+unitGroup(NumberField.gaussian()).torsionOrder;        // 4: ±1, ±i, and rank 0
+unitGroup(NumberField.quadratic(-3)).torsionOrder;     // 6
+
+const V = unitGroup([-2n, 0n, 0n, 1n]);                // Q(∛2): r₁ = 1, r₂ = 1, rank 1
+String(V.fundamentalUnits[0]);                         // "1 + α + α²"
+
+const W = unitGroup([2n, 0n, -4n, 0n, 1n]);            // totally real quartic: rank 3
+W.fundamentalUnits.map(String);     // ["1 − α", "3 + 4α − α² − α³", "1 + 2α − α³"]
+```
+
+For a real quadratic field the fundamental unit comes from the [continued fraction](https://ratmath.com/numtheory/continued-fractions.html) of d​, and it can be large: for Q(94​) it is 2143295+22106494​.
+
+### The regulator
+
+Send a unit u to the vector of log∣σi​(u)∣ over the embeddings (doubled at complex ones). The image of the unit group is a lattice of rank r in the hyperplane where the coordinates sum to zero, and the regulator R is the determinant of any r×r minor of the matrix of fundamental units. A sub-system of units of index m has regulator mR, so a regulator certifies itself only together with a lower bound: this is how the units are proven fundamental, as described in [Class groups](https://ratmath.com/numtheory/class-groups.html).
+
+```js
+regulator([-2n, 0n, 0n, 1n]);          // 1.347377348329384
+regulator([1n, -3n, 0n, 1n]);          // 0.8492874506461925: the cubic field inside Q(ζ₉)
+V.certificate;
+// { method: "saturation", …, regulatorLowerBound: 0.2052, unitIndexBound: 6, primesChecked: 3 }
+```
+
+For Q(32​): the unit found has regulator 1.347; if it were an m-th power of a smaller unit, that one would have regulator 1.347/m≥0.2052, so m≤6; and reductions modulo suitable primes show that it is not a square, a cube or a fifth power, up to sign. Hence it is fundamental.
+
+### Roots of unity
+
+If K has a real embedding the only roots of unity are ±1. Otherwise w divides N(q)−1 for every prime q not dividing w, which leaves few candidates after a handful of primes; each candidate m is settled by looking for a root of the cyclotomic polynomial Φm​ in K, exactly.
+
+```js
+const Z5 = unitGroup([1n, 1n, 1n, 1n, 1n]);     // Q(ζ₅)
+Z5.torsionOrder;                // 10
+String(Z5.rootOfUnity);         // "1 + α + α² + α³", which is −ζ₅⁴: a primitive tenth root
+Z5.fundamentalUnits.map(String);   // ["α + α² + α³"], and its regulator is 2·ln((1 + √5)/2)
+```
+
+### Writing a unit on the fundamental ones
+
+Every unit is ζt∏εiei​​ in one way. The exponents come from solving a linear system in the logarithms and rounding; the answer is then checked exactly.
+
+```js
+const K = new NumberField([-2n, 0n, 0n, 1n]);
+const [eps] = V.fundamentalUnits;
+V.exponents(eps.pow(7).neg());           // { torsion: 1, exponents: [7n] }: −ε⁷
+V.exponents(K.of([[-1n, 1n], [1n, 1n]]));   // { torsion: 0, exponents: [-1n] }: α − 1 = 1/ε
+V.isUnit(K.gen);                         // false: α has norm 2
+```
+
+Units are also what makes generators of principal ideals ambiguous: two generators differ by a unit. And they are the solutions of norm equations N(x)=±1, of which [Pell's equation](https://ratmath.com/numtheory/pell.html) is the quadratic case.
+
+### Try it
+
+```js
+// real quadratic fields: the fundamental unit, its norm and the regulator
+for (const d of [2, 3, 5, 6, 7, 10, 13, 14, 19, 22, 31, 46, 61, 94]) {
+  const U = unitGroup(NumberField.quadratic(d));
+  const [e] = U.fundamentalUnits;
+  PRINT(`√${d}`.padEnd(5), String(e).padEnd(28), `norm ${e.norm()}`.padEnd(9), `R = ${U.regulator.toFixed(6)}`);
+}
+```
+
+---
+
+Page: https://ratmath.com/numtheory/characters.html
+
+L-functions
+
+## Dirichlet characters
+
+A Dirichlet character is a pattern of roots of unity that repeats modulo q and respects multiplication. Characters pick out residue classes the way sines and cosines pick out frequencies, which is how Dirichlet proved that every progression a,a+q,a+2q,… with gcd(a,q)=1 contains infinitely many primes.
+
+### Definition and numbering
+
+A character modulo q is a function χ on the integers with χ(mn)=χ(m)χ(n), χ(n+q)=χ(n), and χ(n)=0 exactly when gcd(n,q)>1. Its nonzero values are roots of unity. There are φ(q) characters modulo q, and under multiplication they form a group isomorphic to the units modulo q.
+
+That isomorphism can be made explicit, and Conrey's numbering (the one used by the LMFDB) does so: for each m coprime to q there is a character χq​(m,⋅), with χq​(m,n)=χq​(n,m). For an odd prime power pe with least primitive root g,
+
+χpe​(ga,gb)=exp(φ(pe)2πiab​),
+with a similar rule for powers of 2 using ±5a, and a product over the prime powers of q.
+
+```js
+import { dirichletCharacter, dirichletGroup } from "@ratmath/numtheory";
+
+const chi = dirichletCharacter(7, 3);
+String(chi);            // "χ_7(3, ·)"
+chi.order;              // 6
+chi.exponent(2);        // 1/3: χ(2) = exp(2πi/3), exactly
+chi.exponents();        // [null, 0, 1/3, 1/6, 2/3, 5/6, 1/2] for n = 0, …, 6
+chi.value(2);           // { re: -0.5, im: 0.866… }
+chi.parity;             // "odd": χ(−1) = −1
+```
+
+Values are kept exactly as fractions t with χ(n)=e2πit; `value` gives the complex number in doubles, and `at(n)` gives 0,1,−1 as BigInts for a real character.
+
+### The group of characters
+
+```js
+const G = dirichletGroup(15);
+G.order;                 // 8
+G.structure;             // [2, 4]: the group is Z/2 × Z/4, like the units mod 15
+G.characters.map((c) => [c.number, c.order, c.conductor, c.parity]);
+// [1, 1, 1, even] [2, 4, 15, even] [4, 2, 5, even] [7, 4, 5, odd]
+// [8, 4, 15, even] [11, 2, 3, odd] [13, 4, 5, odd] [14, 2, 15, odd]
+
+String(dirichletCharacter(15, 2).mul(dirichletCharacter(15, 2)));    // "χ_15(4, ·)": numbers multiply
+String(dirichletCharacter(3, 2).mul(dirichletCharacter(5, 2)));      // "χ_15(2, ·)": moduli combine
+String(dirichletCharacter(15, 2).conjugate());                       // "χ_15(8, ·)"
+```
+
+The orthogonality relations are what make characters useful: summing over all characters isolates one residue class.
+
+χmodq∑​χ(a)χ(b)​={φ(q)0​a≡b(modq), gcd(a,q)=1otherwise.​
+
+```js
+G.orthogonality(2, 2);     // { re: 8, im: 0 }
+G.orthogonality(2, 7);     // { re: 0, im: 0 }
+```
+
+### Conductors and primitive characters
+
+A character modulo 15 may really come from a smaller modulus: χ15​(11,⋅) only depends on n modulo 3, wherever it is not zero. The smallest such modulus is the conductor, and a character is primitive when its conductor is its modulus. Every character is induced by exactly one primitive character.
+
+```js
+const c = dirichletCharacter(15, 11);
+c.conductor;               // 3
+String(c.primitive());     // "χ_3(2, ·)"
+G.primitive.map((x) => x.number);                 // [2, 8, 14]
+String(dirichletCharacter(5, 2).induce(15));      // "χ_15(7, ·)"
+```
+
+For a primitive character the Gauss sum τ(χ)=∑a​χ(a)e2πia/q has absolute value exactly q​; it is the constant in the functional equation of the L-function.
+
+### Real characters and the Kronecker symbol
+
+The characters with values in {0,1,−1} are the quadratic ones. For a discriminant D, the [Kronecker symbol](https://ratmath.com/numtheory/reciprocity.html) n↦(nD​) is a character modulo ∣D∣, primitive exactly when D is a fundamental discriminant. It records how primes split in Q(D​): p splits when the symbol is 1, is inert when it is −1, and ramifies when it is 0.
+
+```js
+const k = kroneckerCharacter(-23);
+String(k);                               // "χ_23(22, ·)"
+[1, 2, 3, 4, 5, 6, 7].map((n) => k.at(n));   // [1n, 1n, 1n, 1n, -1n, 1n, -1n]
+k.isPrimitive;                           // true
+k.gaussSum();                            // { re: 0, im: 4.7958… }: i·√23
+String(kroneckerCharacter(-4));          // "χ_4(3, ·)"
+String(kroneckerCharacter(5));           // "χ_5(4, ·)"
+```
+
+What characters are for: the L-functions L(s,χ)=∑χ(n)n−s, in [Zeta and L values](https://ratmath.com/numtheory/l-values.html).
+
+### Try it
+
+```js
+// the character table mod 12: rows are the characters χ_12(m, ·), columns the units n
+const G = dirichletGroup(12);
+const units = G.characters.map((c) => c.number);
+PRINT("m \\ n".padEnd(8), units.map((n) => String(n).padStart(4)).join(""), "   order  conductor");
+for (const c of G.characters) {
+  PRINT(String(c.number).padEnd(8), units.map((n) => String(c.at(n)).padStart(4)).join(""), `   ${c.order}      ${c.conductor}`);
+}
+PRINT("");
+PRINT("row sums:", G.characters.map((c) => units.reduce((s, n) => s + c.at(n), 0n)).join(" "), "  (only the principal character does not sum to zero)");
+```
+
+---
+
+Page: https://ratmath.com/numtheory/l-values.html
+
+L-functions
+
+## Zeta and L values
+
+ζ(2)=π2/6, ζ(−1)=−1/12, 1−31​+51​−⋯=π/4: special values of zeta and L functions carry arithmetic. Some are exact, and those are returned exactly. Everywhere else the value comes as an interval with rational endpoints that provably contains it.
+
+### The functions
+
+For a [Dirichlet character](https://ratmath.com/numtheory/characters.html) χ,
+
+L(s,χ)=n≥1∑​nsχ(n)​=p∏​(1−psχ(p)​)−1(Res>1),
+and the Riemann zeta function is the case of the trivial character. Each extends to the whole complex plane, with a single pole at s=1 when χ is principal and none otherwise.
+
+### Exact values
+
+At the non-positive integers the values are rational numbers given by Bernoulli numbers, ζ(−n)=−Bn+1​/(n+1), and at the positive even integers Euler's formula gives a rational multiple of a power of π.
+
+```js
+import { bernoulli, zetaExact, lValueExact, kroneckerCharacter, dirichletCharacter } from "@ratmath/numtheory";
+
+[0, 1, 2, 4, 6, 12].map(bernoulli);    // 1, -1/2, 1/6, -1/30, 1/42, -691/2730
+zetaExact(-1);                 // -1/12
+zetaExact(-3);                 // 1/120
+zetaExact(-2);                 // 0: a trivial zero
+String(zetaExact(2));          // "π^2/6"
+String(zetaExact(12));         // "691π^12/638512875"
+zetaExact(12).coefficient;     // 691/638512875
+```
+
+For a character the same holds with generalised Bernoulli numbers: L(1−k,χ)=−Bk,χ​/k, where Bk,χ​=qk−1∑a=1q​χ(a)Bk​(a/q). For a real character the value is a Rational; for a complex one it lies in the cyclotomic field of the character's order.
+
+```js
+lValueExact(kroneckerCharacter(-23), 0);     // 3
+lValueExact(kroneckerCharacter(-163), 0);    // 1
+lValueExact(kroneckerCharacter(-4), 0);      // 1/2
+lValueExact(kroneckerCharacter(5), -1);      // -2/5
+String(lValueExact(dirichletCharacter(5, 2), 0));   // "3/5 + (1/5)ζ4": (3 + i)/5
+```
+
+The first lines are the class number formula. For a negative fundamental discriminant D, with w roots of unity in Q(D​),
+
+h(D)=2w​L(0,χD​)=2πw∣D∣​​L(1,χD​).
+So L(0,χ−23​)=3 is the class number of Q(−23​), found on the [Class groups](https://ratmath.com/numtheory/class-groups.html) page by entirely different means, and L(0,χ−163​)=1 is the reason eπ163​ is so nearly a whole number.
+
+### Enclosures
+
+At other points there is no closed form. `zetaValue` and `lValue` return a `RationalInterval` narrower than 2−bits (64 by default) that contains the true value. The argument is given exactly: a whole number, a fraction as text, or `[σ, t]` for the point σ+it of the plane, in which case the result is `{ re, im }`.
+
+```js
+import { zetaValue, lValue, hurwitzZeta } from "@ratmath/numtheory";
+
+const z = zetaValue(3);                 // Apéry's constant
+z.compactedDecimalInterval();           // "1.202056903159594285[38:41]"
+zetaValue(3, { bits: 200 });            // sixty digits
+
+zetaValue("1/2").low.toNumber();        // -1.4603545088095868
+
+const w = zetaValue(["1/2", 14]);       // near the first zero, 1/2 + 14.1347…i
+[w.re.low.toNumber(), w.im.low.toNumber()];     // [0.02224114…, -0.10325812…]
+
+lValue(kroneckerCharacter(-4), 1).compactedDecimalInterval();    // "0.7853981633974483096[1:3]" = π/4
+lValue(kroneckerCharacter(8), 1).low.toNumber();                 // 0.6232252401402305 = ln(1 + √2)/√2
+lValue(dirichletCharacter(7, 3), [2, 5]);                        // { re, im }: a complex character, off the real line
+```
+
+The last real example is the class number formula for a real quadratic field: hlnε=2D​​L(1,χD​), here with h=1 and the unit ε=1+2​ from the [Units](https://ratmath.com/numtheory/units.html) page.
+
+### How the enclosures are proved
+
+Every L-function is a combination of Hurwitz zeta functions ζ(s,a)=∑n≥0​(n+a)−s:
+
+L(s,χ)=q−sa=1∑q​χ(a)ζ(s,qa​).
+And ζ(s,a) is computed by the Euler–Maclaurin formula: sum the first N terms directly, replace the rest by an integral, and correct with Bernoulli numbers,
+
+ζ(s,a)=n=0∑N−1​(n+a)s1​+s−1(N+a)1−s​+2(N+a)s1​+j=1∑M​(2j)!B2j​​(N+a)s+2j−1s(s+1)⋯(s+2j−2)​+R,
+with the remainder bounded explicitly:
+
+∣R∣≤(2π)2M4∣s(s+1)⋯(s+2M−1)∣​⋅σ+2M−1(N+a)−(σ+2M−1)​,σ=Res>1−2M.
+The formula holds wherever the bound makes sense, which is how it reaches the left half plane and the critical strip. Every operation is done in ball arithmetic: a midpoint and a radius, with each rounding added to the radius, and exponentials, logarithms, sines and cosines carrying their own error bounds. The remainder bound is added at the end. At s=1 the poles of the individual ζ(s,a/q) cancel because ∑χ(a)=0, and the limit is taken exactly.
+
+```js
+hurwitzZeta(2, "1/4").low.toNumber();   // 17.197329154507… = π² + 8G, with G Catalan's constant
+
+// an enclosure contains the exact value where there is one
+const e = zetaValue(-5, { bits: 100 });
+const x = zetaExact(-5);                // -1/252
+e.low.lessThanOrEqual(x) && x.lessThanOrEqual(e.high);    // true
+```
+
+Limits: the modulus of the character is at most 5000 for enclosures, and the cost grows with the modulus and with the height ∣t∣. For the zeros of ζ, with proof that they lie on the critical line, see the gamma and zeta page of [@ratmath/complex](https://ratmath.com/complex/gamma-zeta.html).
+
+### Try it
+
+```js
+// the class number formula, three ways, for negative fundamental discriminants
+for (const D of [-3, -4, -7, -8, -15, -20, -23, -47, -71, -163]) {
+  const chi = kroneckerCharacter(D);
+  const w = D === -3 ? 6 : D === -4 ? 4 : 2;
+  const L1 = lValue(chi, 1, { bits: 40 });
+  const fromL1 = (w * Math.sqrt(-D) * L1.low.toNumber()) / (2 * Math.PI);
+  const exact = lValueExact(chi, 0).multiply(new Rational(BigInt(w), 2n));
+  PRINT(`D = ${D}`.padEnd(10), `(w/2)·L(0, χ) = ${exact}`.padEnd(22), `from L(1, χ): ${fromL1.toFixed(9)}`.padEnd(30), `forms: ${classNumber(D)}`);
+}
+```
+
+---
+
+Page: https://ratmath.com/numtheory/padic.html
+
+p-adic numbers
+
+## p-adic numbers
+
+Measure a number by how often p divides it, and the integers acquire a new completion: numbers with infinitely many digits to the left. Here a p-adic number is a rule that produces as many digits as you ask for, exactly.
+
+### Valuation and the p-adic size
+
+For a rational x=0, vp​(x) is the exponent of p in x and ∣x∣p​=p−vp​(x). So ∣50/27∣5​=1/25 and ∣50/27∣3​=27: being divisible by p makes a number small. This size satisfies the strong triangle inequality ∣x+y∣p​≤max(∣x∣p​,∣y∣p​), and with the ordinary size it gives the product formula ∣x∣∏p​∣x∣p​=1.
+
+```js
+import { padic, padicValuation, padicNorm, expansion, henselRoot, teichmuller } from "@ratmath/numtheory";
+
+padicValuation("50/27", 5n);          // 2
+String(padicNorm("50/27", 3n));       // "27"
+padic("50/27", 3n).toString();        // "…00000000000000001.212"
+```
+
+### Infinitely many digits to the left
+
+Completing Q with ∣⋅∣p​ gives Qp​, whose elements are ∑i≥v​di​pi with digits 0≤di​<p, written right to left. In Z5​, …4444=−1: add 1 and every digit carries. A rational's expansion is eventually periodic, and conversely.
+
+```js
+padic(-1, 5n).toString();      // "…44444444444444444444"
+padic("1/3", 5n).toString();   // "…31313131313131313132": 3 times it is …0001
+expansion("1/3", 5n);          // { valuation: 0, preperiod: [2n], period: [3n, 1n] }
+padic("1/10", 5n).toString();  // "…2222222222222222222.3"
+```
+
+### Lazy and exact
+
+A `Padic` is a rule: given N, it returns a rational r with vp​(x−r)≥N. Rationals are exact. A sum asks its parts for precision N; a product asks each for N minus the other's valuation; a quotient first finds the divisor's valuation. Nothing is fixed in advance, so asking for more digits reruns the whole computation to that depth, and results are cached. What cannot be decided by digits is reported: the valuation of a number that may be zero is searched for, and the search gives up with the code `"unknown-valuation"` rather than claiming a zero.
+
+### Square roots and Hensel
+
+For odd p, a unit u is a square in Zp​ exactly when it is a square mod p; for p=2, when u≡1(mod8). Then Newton's iteration from a root mod p converges p-adically, doubling the correct digits each step. `henselRoot` does the same for any polynomial, given a start r0​ with v(f(r0​))>2v(f′(r0​)).
+
+```js
+const i = padic(-1, 5n).sqrt();
+i.toString();                   // "…40423140223032431212": a square root of −1 in Z₅
+i.mul(i).toString();            // "…44444444444444444444"
+padic(-7, 2n).sqrt();           // exists: −7 ≡ 1 (mod 8)
+padic(2, 5n).sqrt();            // throws "not-a-square": 2 is not a square mod 5
+henselRoot([-2, 0, 0, 1], 3, 5n).toString();   // "…21134404003204132203", the cube root of 2 ≡ 3 (mod 5)
+```
+
+### exp, log and roots of unity
+
+The series expx=∑xn/n! converges when vp​(x)≥1 (≥2 for p=2), since vp​(n!)≤(n−1)/(p−1). The series log(1+y)=y−y2/2+… converges for vp​(y)≥1, and extends to every unit by logu=log(up−1)/(p−1); on the domain of exp the two are inverse. The Teichmüller representative ω(a)=limapn is the (p−1)-th root of unity congruent to a: in Z5​, ω(2) is the square root of −1 above.
+
+```js
+padic(5, 5n).exp().log().toString();    // "…000000000000000000010": back to 5
+teichmuller(2n, 5n).toString();         // "…40423140223032431212"
+teichmuller(2n, 5n).pow(4).toString();  // "…00000000000000000001"
+```
+
+### Try it
+
+```js
+// the expansions of a few rationals in Z_7, with their periods
+for (const q of ["1/2", "-1/3", "5/6", "1/49", "22/7"]) PRINT(q, padic(q, 7n).toString(16), expansion(q, 7n));
+// √2 in Z_7: ask for more digits and the computation reruns to that depth
+const r = padic(2, 7n).sqrt();
+PRINT(r.toString(10), "\n", r.toString(30));
+PRINT("r² − 2 ≡ 0 mod 7^30:", r.mul(r).sub(2).mod(30) === 0n);
+// but r² − 2 is exactly zero, and digits alone can never show that: the answer says so
+try { r.mul(r).sub(2).valuation(); } catch (e) { PRINT(e.code); }
+// log is a homomorphism: log(ab) = log a + log b
+const a = padic(8, 7n), b = padic(15, 7n);
+PRINT(a.mul(b).log().equalsTo(a.log().add(b.log()), 40));
+// the product formula for 360/7
+[2n, 3n, 5n, 7n].map((p) => [p, String(padicNorm("360/7", p))])
+```
