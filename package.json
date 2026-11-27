@@ -1,7 +1,7 @@
 {
   "name": "@ratmath/numtheory",
-  "version": "0.2.0",
-  "description": "Number theory for RatMath: primes with certificates, congruences, Diophantine equations, p-adic numbers, elliptic curves and number fields",
+  "version": "0.3.0",
+  "description": "Number theory for RatMath: primes with certificates, congruences, Diophantine equations, p-adic numbers, elliptic curves, number fields with proven class groups and units, and zeta and L values",
   "type": "module",
   "main": "index.js",
   "exports": {
@@ -30,6 +30,9 @@
     "congruence",
     "diophantine",
     "elliptic-curve",
+    "number-field",
+    "class-group",
+    "l-function",
     "exact",
     "ratmath"
   ],

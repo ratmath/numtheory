@@ -1,5 +1,41 @@
 # Changelog
 
+## 0.3.0 (unreleased)
+
+Phases 5, 6 and 7 of the roadmap: number fields and L-functions. The plan is
+now fully built.
+
+- `ringOfIntegers(K)` (Round 2): `basis`, `discriminant`, `index`,
+  `coordinates`, `contains`, `traceMatrix`; also `integralBasis` and
+  `fieldDiscriminant`. A field is a `NumberField` from algebraic (re-exported)
+  or the coefficients of a monic irreducible polynomial, constant term first.
+- Prime ideals above any prime, including those dividing the index:
+  `primesAbove`, `describePrime`, `primeDecomposition`, `ramifiedPrimes`, with
+  `e`, `f`, two generators and `valuation`.
+- Ideals: `O.ideal(...)`, `mul`, `add`, `inverse`, `div`, `pow`, `norm`,
+  `contains`, `factor`, and `sup`.
+- `idealClassGroup(K)`: class number, structure, generators, `classOf`,
+  `orderOf`, `isPrincipal` with a generator. Proven without the Riemann
+  hypothesis: the Minkowski bound for generators, and saturation tests against
+  Friedman's regulator bound for the index. A test that fails names a hidden
+  ℓ-th power, whose root is taken in the field and added to the relations.
+  Quadratic fields are checked against binary quadratic forms. `proven` and
+  `certificate` say what was shown.
+- `unitGroup(K)`: rank, roots of unity, fundamental units, `regulator`,
+  `isUnit`, `exponents`. Also `fieldClassNumber`, `regulator`,
+  `minkowskiBound`, `formToIdeal`.
+- `primePi` now counts by Meissel's method above 10⁷, up to 10¹²; `meissel`
+  and `legendrePhi` are exported.
+- Dirichlet characters with Conrey numbering: `dirichletCharacter`,
+  `dirichletGroup`, `kroneckerCharacter`; order, conductor, parity,
+  primitivity, the inducing character, Gauss sums, products.
+- Exact values: `bernoulli`, `bernoulliPolynomial`, `generalizedBernoulli`,
+  `zetaExact`, `lValueExact`.
+- Enclosures: `zetaValue`, `hurwitzZeta` and `lValue` at real or complex
+  arguments, by Euler–Maclaurin summation in ball arithmetic with the
+  remainder bounded.
+- Seven new docs pages, and two new panels on the explore page.
+
 ## 0.2.0 (unreleased)
 
 Phase 4 of the roadmap: elliptic curves.

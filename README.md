@@ -3,11 +3,14 @@
 Primes, congruences and equations in integers for [RatMath](https://ratmath.com/), part of the
 [RatMath Shelf](https://ratmath.com/shelf/).
 
-**Status: phases 1 to 4 built.** Primes with certificates, factoring,
+**Status: all seven phases built.** Primes with certificates, factoring,
 arithmetic functions, congruences, reciprocity, sums of squares, linear and Pell
-equations, continued fractions, binary quadratic forms, p-adic numbers, and elliptic
-curves with the factoring method and primality certificates built on them. The
-rest of the plan is in the
+equations, continued fractions, binary quadratic forms, p-adic numbers, elliptic
+curves with the factoring method and primality certificates built on them,
+number fields (rings of integers, prime ideals, class groups and units, proven
+without assuming the Riemann hypothesis), prime counting, Dirichlet characters,
+and values of zeta and L-functions as exact numbers or enclosures. The plan it
+followed is in the
 [library roadmap](https://github.com/ratmath/ratmath/blob/main/docs/design/library-roadmap.md#4-a-number-theory-package-ratmathnumtheory).
 Docs: [ratmath.com/numtheory](https://ratmath.com/numtheory/).
 
@@ -23,10 +26,27 @@ padic(-1, 5n).sqrt().toString(12);         // "…223032431212"
 formatFactors(factor(2n ** 128n + 1n));    // "59649589127497217 · 5704689200685129054721", by elliptic curves
 ```
 
+```js
+import { ringOfIntegers, idealClassGroup, unitGroup, primePi, zetaValue, lValueExact, kroneckerCharacter } from "@ratmath/numtheory";
+
+const O = ringOfIntegers([-19n, 0n, 0n, 1n]);            // the field of x³ − 19, constant term first
+O.basis.map(String);                                     // ["1", "α", "1/3 + (1/3)α + (1/3)α²"]
+O.describePrime(3).text;                                 // "3·O = (3, 2/3 − (1/3)α − (1/3)α²) · (3, 1/3 + (1/3)α + (1/3)α²)²"
+const C = idealClassGroup([-65n, 0n, 0n, 1n]);
+String(C);                                               // "class group of Q(α), α a root of x³ − 65: C3 × C6, h = 18"
+C.proven;                                                // true, with C.certificate saying how
+unitGroup([-2n, 0n, 0n, 1n]).fundamentalUnits.map(String);   // ["1 + α + α²"]
+primePi(10n ** 11n);                                     // 4118054813n
+zetaValue(3).compactedDecimalInterval();                 // "1.202056903159594285[38:41]", an interval that contains ζ(3)
+String(lValueExact(kroneckerCharacter(-23), 0));         // "3", the class number of Q(√−23)
+```
+
 "Prime" means proven: below 2^64 by Baillie–PSW, which has no exceptions
 there, and above by a Pocklington, Brillhart–Lehmer–Selfridge or elliptic
 curve certificate that `src/verify.js`, which imports nothing from the rest of the package,
 checks. When no certificate can be found `isPrime` refuses with the reason.
+In the same spirit a class group carries `proven` and a `certificate`, and a
+numerical value of ζ or an L-function is an interval that contains it.
 
 ## Phases
 
@@ -36,9 +56,9 @@ checks. When no certificate can be found `isPrime` refuses with the reason.
 | 2 | Diophantine equations and binary quadratic forms | built |
 | 3 | p-adic numbers | built |
 | 4 | Elliptic curves; ECM and curve-based certificates | built |
-| 5 | Integral bases, discriminants, prime ideal factorisation | planned |
-| 6 | Class groups and unit groups | planned |
-| 7 | π(x), characters, ζ and L values | planned |
+| 5 | Integral bases, discriminants, prime ideal factorisation | built |
+| 6 | Class groups and unit groups | built |
+| 7 | π(x), characters, ζ and L values | built |
 
 It depends on Core and algebraic (vendored as a git submodule under
 `vendor/algebraic`; clone with `--recursive`). Continued fractions, Pell's

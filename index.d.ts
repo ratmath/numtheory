@@ -505,6 +505,8 @@ export interface FieldCertificate {
   classNumberPrimes?: number[];
   /** How many primes passed a saturation test. */
   primesChecked?: number;
+  /** How many relation elements were found as ℓ-th roots named by a failed saturation test. */
+  rootsTaken?: number;
   narrowClassNumber?: bigint;
   formClassNumber?: bigint;
   note?: string;

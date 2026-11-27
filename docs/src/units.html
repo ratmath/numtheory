@@ -1,0 +1,80 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Units · RatMath Number Theory</title>
+<meta name="description" content="Unit groups of number fields in @ratmath/numtheory: Dirichlet&#x27;s unit theorem, roots of unity, fundamental units, the regulator, and writing any unit on the fundamental ones.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&family=Space+Grotesk:wght@500;600;700&display=swap">
+<link rel="stylesheet" href="assets/style.css">
+<script type="module" src="assets/site.js"></script>
+</head>
+<body>
+<div class="shell">
+<aside></aside>
+<main>
+<article>
+<div class="eyebrow">Number fields</div>
+<h1>Units</h1>
+<p class="lede">The units of a ring of integers are the elements of norm \(\pm 1\). Dirichlet's theorem says what the group looks like: finitely many roots of unity, times a free group whose rank is fixed by the number of real and complex embeddings. Finding generators is harder than knowing they exist.</p>
+
+<h2>Dirichlet's unit theorem</h2>
+<p>If \(K\) has \(r_1\) real embeddings and \(r_2\) pairs of complex ones, then</p>
+\[ \mathcal{O}_K^\times \cong \mu_w \times \mathbb{Z}^{r}, \qquad r = r_1 + r_2 - 1, \]
+<p>where \(\mu_w\) is the group of roots of unity in \(K\). A set of \(r\) units generating the free part is a system of <strong>fundamental units</strong>.</p>
+<pre><code>import { NumberField, unitGroup } from "@ratmath/numtheory";
+
+const U = unitGroup(NumberField.quadratic(2));
+U.rank;                 // 1
+U.torsionOrder;         // 2: the roots of unity are ±1
+U.fundamentalUnits;     // [1 + √2]
+U.regulator;            // 0.881373587019543 = ln(1 + √2)
+
+unitGroup(NumberField.gaussian()).torsionOrder;        // 4: ±1, ±i, and rank 0
+unitGroup(NumberField.quadratic(-3)).torsionOrder;     // 6
+
+const V = unitGroup([-2n, 0n, 0n, 1n]);                // Q(∛2): r₁ = 1, r₂ = 1, rank 1
+String(V.fundamentalUnits[0]);                         // "1 + α + α²"
+
+const W = unitGroup([2n, 0n, -4n, 0n, 1n]);            // totally real quartic: rank 3
+W.fundamentalUnits.map(String);     // ["1 − α", "3 + 4α − α² − α³", "1 + 2α − α³"]</code></pre>
+<p>For a real quadratic field the fundamental unit comes from the <a href="continued-fractions.html">continued fraction</a> of \(\sqrt d\), and it can be large: for \(\mathbb{Q}(\sqrt{94})\) it is \(2143295 + 221064\sqrt{94}\).</p>
+
+<h2>The regulator</h2>
+<p>Send a unit \(u\) to the vector of \(\log|\sigma_i(u)|\) over the embeddings (doubled at complex ones). The image of the unit group is a lattice of rank \(r\) in the hyperplane where the coordinates sum to zero, and the <strong>regulator</strong> \(R\) is the determinant of any \(r \times r\) minor of the matrix of fundamental units. A sub-system of units of index \(m\) has regulator \(mR\), so a regulator certifies itself only together with a lower bound: this is how the units are proven fundamental, as described in <a href="class-groups.html">Class groups</a>.</p>
+<pre><code>regulator([-2n, 0n, 0n, 1n]);          // 1.347377348329384
+regulator([1n, -3n, 0n, 1n]);          // 0.8492874506461925: the cubic field inside Q(ζ₉)
+V.certificate;
+// { method: "saturation", …, regulatorLowerBound: 0.2052, unitIndexBound: 6, primesChecked: 3 }</code></pre>
+<p>For \(\mathbb{Q}(\sqrt[3]{2})\): the unit found has regulator 1.347; if it were an \(m\)-th power of a smaller unit, that one would have regulator \(1.347/m \ge 0.2052\), so \(m \le 6\); and reductions modulo suitable primes show that it is not a square, a cube or a fifth power, up to sign. Hence it is fundamental.</p>
+
+<h2>Roots of unity</h2>
+<p>If \(K\) has a real embedding the only roots of unity are \(\pm 1\). Otherwise \(w\) divides \(N(\mathfrak{q}) - 1\) for every prime \(\mathfrak{q}\) not dividing \(w\), which leaves few candidates after a handful of primes; each candidate \(m\) is settled by looking for a root of the cyclotomic polynomial \(\Phi_m\) in \(K\), exactly.</p>
+<pre><code>const Z5 = unitGroup([1n, 1n, 1n, 1n, 1n]);     // Q(ζ₅)
+Z5.torsionOrder;                // 10
+String(Z5.rootOfUnity);         // "1 + α + α² + α³", which is −ζ₅⁴: a primitive tenth root
+Z5.fundamentalUnits.map(String);   // ["α + α² + α³"], and its regulator is 2·ln((1 + √5)/2)</code></pre>
+
+<h2>Writing a unit on the fundamental ones</h2>
+<p>Every unit is \(\zeta^t \prod \varepsilon_i^{e_i}\) in one way. The exponents come from solving a linear system in the logarithms and rounding; the answer is then checked exactly.</p>
+<pre><code>const K = new NumberField([-2n, 0n, 0n, 1n]);
+const [eps] = V.fundamentalUnits;
+V.exponents(eps.pow(7).neg());           // { torsion: 1, exponents: [7n] }: −ε⁷
+V.exponents(K.of([[-1n, 1n], [1n, 1n]]));   // { torsion: 0, exponents: [-1n] }: α − 1 = 1/ε
+V.isUnit(K.gen);                         // false: α has norm 2</code></pre>
+<p>Units are also what makes generators of principal ideals ambiguous: two generators differ by a unit. And they are the solutions of norm equations \(N(x) = \pm 1\), of which <a href="pell.html">Pell's equation</a> is the quadratic case.</p>
+<template data-runbox>
+// real quadratic fields: the fundamental unit, its norm and the regulator
+for (const d of [2, 3, 5, 6, 7, 10, 13, 14, 19, 22, 31, 46, 61, 94]) {
+  const U = unitGroup(NumberField.quadratic(d));
+  const [e] = U.fundamentalUnits;
+  PRINT(`√${d}`.padEnd(5), String(e).padEnd(28), `norm ${e.norm()}`.padEnd(9), `R = ${U.regulator.toFixed(6)}`);
+}
+</template>
+</article>
+</main>
+</div>
+</body>
+</html>

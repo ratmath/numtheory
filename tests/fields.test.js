@@ -141,6 +141,18 @@ describe("class groups", () => {
     expect(c.structure).toEqual([3n, 6n]);
     expect(c.proven).toBe(true);
   });
+  test("a failed saturation test is repaired by taking a root", () => {
+    // small elements alone give C2 × C2 × C2 for Q(∛113); the test at 2 names a hidden square
+    const a = h([-113n, 0n, 0n, 1n]);
+    expect(a.structure).toEqual([2n, 2n]);
+    expect(a.proven).toBe(true);
+    expect(a.certificate.rootsTaken).toBeGreaterThan(0);
+    // 5 is totally ramified in Q(∛100), where it divides the index of Z[α]
+    const O = N.ringOfIntegers([-100n, 0n, 0n, 1n]);
+    expect(O.discriminant).toBe(-300n);
+    expect(O.primesAbove(5).map((P) => [P.e, P.f])).toEqual([[3, 1]]);
+    expect(h([-100n, 0n, 0n, 1n]).h).toBe(1n);
+  });
   test("classes, orders and principal ideals in Q(∛65)", () => {
     const K = new NumberField([-65n, 0n, 0n, 1n]);
     const O = N.ringOfIntegers(K);

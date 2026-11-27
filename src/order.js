@@ -122,6 +122,7 @@ export class Order {
         });
       }),
     );
+    this._tr = null; // traces of the basis, filled on demand
     void n;
   }
   /** Product of integer coordinate vectors over the integral basis. */

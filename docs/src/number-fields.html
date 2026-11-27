@@ -1,0 +1,77 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Rings of integers · RatMath Number Theory</title>
+<meta name="description" content="The ring of integers of a number field in @ratmath/numtheory: an integral basis by the Round 2 algorithm, the field discriminant, the index, and the signature.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&family=Space+Grotesk:wght@500;600;700&display=swap">
+<link rel="stylesheet" href="assets/style.css">
+<script type="module" src="assets/site.js"></script>
+</head>
+<body>
+<div class="shell">
+<aside></aside>
+<main>
+<article>
+<div class="eyebrow">Number fields</div>
+<h1>Rings of integers</h1>
+<p class="lede">In \(\mathbb{Q}(\sqrt5)\) the number \((1+\sqrt5)/2\) is a root of \(x^2 - x - 1\): it has a denominator, yet it behaves like a whole number. The algebraic integers of a number field form a ring, a lattice of rank \(n\) inside the field, and finding a basis of it is the first step of everything else: discriminants, prime ideals, class groups, units.</p>
+
+<h2>A field and its integers</h2>
+<p>A number field is \(K = \mathbb{Q}(\alpha)\) for a root \(\alpha\) of an irreducible polynomial; here it is a <code>NumberField</code> from <code>@ratmath/algebraic</code> (re-exported), or just the coefficients of the polynomial, constant first. An element of \(K\) is an <strong>algebraic integer</strong> when it is a root of a monic polynomial with whole coefficients. They form the ring \(\mathcal{O}_K\), and \(\mathcal{O}_K\) has a basis \(\omega_1 = 1, \omega_2, \dots, \omega_n\) over \(\mathbb{Z}\): an <strong>integral basis</strong>.</p>
+<pre><code>import { NumberField, ringOfIntegers } from "@ratmath/numtheory";
+
+const K = new NumberField([-8n, -2n, -1n, 1n]);   // α³ − α² − 2α − 8 = 0, Dedekind's field
+const O = ringOfIntegers(K);
+O.basis;            // 1, α, (1/2)α + (1/2)α²
+O.discriminant;     // -503n
+O.index;            // 2n: Z[α] has index 2 in the ring of integers
+O.signature;        // [1, 1]: one real embedding, one pair of complex ones
+
+O.contains(K.gen.mul(K.gen).add(K.gen).div(K.of(2n)));   // true: (α² + α)/2 is an integer
+O.coordinates(K.gen.mul(K.gen));                         // 0, -1, 2: α² = −ω₂ + 2ω₃
+String(O.element([0, 0, 1]));                            // "(1/2)α + (1/2)α²"</code></pre>
+<p>The quadratic case is the familiar one: \(\mathbb{Z}[\sqrt d]\) when \(d \equiv 2, 3 \pmod 4\), and \(\mathbb{Z}[(1+\sqrt d)/2]\) when \(d \equiv 1 \pmod 4\).</p>
+<pre><code>ringOfIntegers(NumberField.quadratic(5)).basis;     // 1, 1/2 + (1/2)√5
+ringOfIntegers(NumberField.quadratic(-5)).basis;    // 1, √(-5)
+ringOfIntegers([-19n, 0n, 0n, 1n]).basis;           // 1, α, 1/3 + (1/3)α + (1/3)α²   (α³ = 19)</code></pre>
+
+<h2>The discriminant</h2>
+<p>The <strong>discriminant</strong> of the field is \(d_K = \det\big(\operatorname{Tr}(\omega_i\omega_j)\big)\), the squared volume of the lattice \(\mathcal{O}_K\). It does not depend on the basis. For the lattice \(\mathbb{Z}[\alpha]\) the same determinant is the discriminant of the polynomial, and the two differ by the square of the index:</p>
+\[ \operatorname{disc}(f) = [\mathcal{O}_K : \mathbb{Z}[\alpha]]^2 \cdot d_K. \]
+<p>So only primes whose square divides \(\operatorname{disc}(f)\) can divide the index. For Dedekind's field, \(\operatorname{disc}(f) = -2012 = -2^2 \cdot 503\), and the index is 2.</p>
+<pre><code>O.polyDiscriminant;     // -2012n
+O.traceMatrix;          // [[3, 1, 3], [1, 5, 18], [3, 18, 29]], with determinant −503
+fieldDiscriminant([1n, 1n, 1n, 1n, 1n]);    // 125n: the fifth roots of unity
+fieldDiscriminant([-2n, 0n, 0n, 0n, 1n]);   // -2048n: Q(⁴√2)
+O.ramifiedPrimes;       // [503n]: the primes dividing the discriminant</code></pre>
+
+<h2>How the basis is found: Round 2</h2>
+<p>Start with the order \(\mathcal{O} = \mathbb{Z}[\theta]\), where \(\theta\) is \(\alpha\) scaled to be integral, and enlarge it one prime at a time. For a prime \(p\), let \(I_p\) be the <strong>radical</strong> of \(p\mathcal{O}\): the elements with some power in \(p\mathcal{O}\). The theorem of Pohst and Zassenhaus says that</p>
+\[ \mathcal{O}' = \{ x \in K : x I_p \subseteq I_p \} \]
+<p>is an order containing \(\mathcal{O}\), and that \(\mathcal{O}' = \mathcal{O}\) exactly when \(\mathcal{O}\) is already maximal at \(p\). Both steps are linear algebra over \(\mathbb{F}_p\). The radical is the kernel of \(x \mapsto x^{p^k}\) on \(\mathcal{O}/p\mathcal{O}\) once \(p^k \ge n\) (or of the trace form when \(p > n\)), and \(\mathcal{O}'\) comes from the kernel of the map sending \(x\) to multiplication by \(x\) on \(I_p/pI_p\). Repeat until nothing grows, for each \(p\) with \(p^2 \mid \operatorname{disc}(f)\).</p>
+<pre><code>O.steps;
+// [{ p: 2n, exponent: 2, indexExponent: 1, rounds: 1, note: "the order grows by index 2 in 1 round" }]
+
+ringOfIntegers([-19n, 0n, 0n, 1n]).steps.map((s) =&gt; s.note);
+// ["the order grows by index 3 in 1 round", "already maximal at 19"]</code></pre>
+<p>The polynomial need not be monic or have whole coefficients: the generator is rescaled inside, and <code>O.scale</code> says by how much. The discriminant of the polynomial has to be factored, which is the one step that can be slow for large coefficients.</p>
+
+<h2>Why Dedekind's field is famous</h2>
+<p>One might hope that \(\mathcal{O}_K = \mathbb{Z}[\beta]\) for a well-chosen \(\beta\), as in quadratic fields. In Dedekind's field no \(\beta\) works. The prime 2 splits into three different prime ideals of norm 2 (see <a href="prime-ideals.html">Prime ideals</a>); if \(\mathcal{O}_K\) were \(\mathbb{Z}[\beta]\), those primes would correspond to three different linear factors of a cubic modulo 2, and there are only two linear polynomials modulo 2. So every \(\mathbb{Z}[\beta]\) has even index.</p>
+<p>Next: how primes factor in \(\mathcal{O}_K\), in <a href="prime-ideals.html">Prime ideals</a>; then <a href="class-groups.html">Class groups</a> and <a href="units.html">Units</a>.</p>
+<template data-runbox>
+// pure cubic fields Q(∛m): the integral basis depends on m mod 9
+for (const m of [2, 3, 5, 6, 7, 10, 12, 17, 19, 26, 28]) {
+  const O = ringOfIntegers([BigInt(-m), 0n, 0n, 1n]);
+  PRINT(`m = ${m}`.padEnd(8), `disc ${O.discriminant}`.padEnd(12), `index ${O.index}`.padEnd(9), O.basis.join(",  "));
+}
+</template>
+</article>
+</main>
+</div>
+</body>
+</html>

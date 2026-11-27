@@ -50,15 +50,16 @@ export function minkowskiBound(K) {
 
 // ---- embeddings ----
 
-function embeddings(O) {
-  if (O._emb) return O._emb;
+/** ωᵢ at each place (real ones first), fixed point with the given number of bits. */
+function omegaAt(O, bits) {
+  O._om ??= new Map();
+  if (O._om.has(bits)) return O._om.get(bits);
   const n = O.n;
   const [r1] = O.signature;
-  const B = BigInt(BITS);
+  const B = BigInt(bits);
   const one = 1n << B;
-  const { real, complex } = rootsFixed(O.T, r1, BITS);
+  const { real, complex } = rootsFixed(O.T, r1, bits);
   const places = [...real.map((x) => [x, 0n]), ...complex];
-  // ωᵢ at each place
   const om = places.map(([re, im]) => {
     const pw = [[one, 0n]];
     for (let j = 1; j < n; j++) {
@@ -75,25 +76,171 @@ function embeddings(O) {
       return [x / O.dW, y / O.dW];
     });
   });
-  const embed = (v) =>
-    om.map((w) => {
-      let x = 0n;
-      let y = 0n;
-      for (let i = 0; i < n; i++) {
-        if (v[i] === 0n) continue;
-        x += v[i] * w[i][0];
-        y += v[i] * w[i][1];
-      }
-      return [x, y];
-    });
-  // ln|σ(x)| at a real place, 2·ln|σ(x)| at a complex one
-  const logVec = (v) =>
-    embed(v).map(([x, y], k) => (k < r1 ? lnFixed(x < 0n ? -x : x, BITS) : lnFixed((x * x + y * y) >> B, BITS)));
+  O._om.set(bits, om);
+  return om;
+}
+const embedWith = (om, v) =>
+  om.map((w) => {
+    let x = 0n;
+    let y = 0n;
+    for (let i = 0; i < v.length; i++) {
+      if (v[i] === 0n) continue;
+      x += v[i] * w[i][0];
+      y += v[i] * w[i][1];
+    }
+    return [x, y];
+  });
+const bitSize = (v) => v.reduce((s, x) => Math.max(s, (x < 0n ? -x : x).toString(2).length), 0);
+
+function embeddings(O) {
+  if (O._emb) return O._emb;
+  const [r1] = O.signature;
+  const B = BigInt(BITS);
+  const om = omegaAt(O, BITS);
+  const embed = (v) => embedWith(om, v);
+  // ln|σ(x)| at a real place, 2·ln|σ(x)| at a complex one. Elements with large coordinates can be
+  // small at a place, so they are embedded with as many extra bits as their coordinates have.
+  const logVec = (v) => {
+    const size = bitSize(v);
+    if (size <= 40) return embed(v).map(([x, y], k) => (k < r1 ? lnFixed(x < 0n ? -x : x, BITS) : lnFixed((x * x + y * y) >> B, BITS)));
+    const bits = BITS + 64 * Math.ceil((O.n * size) / 64);
+    const Bh = BigInt(bits);
+    const down = Bh - B;
+    return embedWith(omegaAt(O, bits), v).map(([x, y], k) => (k < r1 ? lnFixed(x < 0n ? -x : x, bits) : lnFixed((x * x + y * y) >> Bh, bits)) >> down);
+  };
   // integer coordinates for the T₂ norm
   const SH = B - 24n;
   const t2 = (v) => embed(v).flatMap(([x, y], k) => (k < r1 ? [x >> SH] : [x >> SH, y >> SH]));
-  return (O._emb = { places, embed, logVec, t2, r1 });
+  return (O._emb = { embed, logVec, t2, r1 });
 }
+
+// ---- ℓ-th roots in the field ----
+
+/** The ℓ-th roots of the complex fixed-point number x + iy: Newton from double starting values. */
+function complexRoots(x, y, l, bits, which) {
+  const B = BigInt(bits);
+  const ab = (t) => (t < 0n ? -t : t);
+  const top = ab(x) > ab(y) ? ab(x) : ab(y);
+  if (top === 0n) return [];
+  const s = Math.floor((top.toString(2).length - bits) / l);
+  const sh = BigInt(Math.abs(l * s));
+  const [ax, ay] = l * s >= 0 ? [x >> sh, y >> sh] : [x << sh, y << sh];
+  const fx = fixedToNumber(ax, bits);
+  const fy = fixedToNumber(ay, bits);
+  const rho = Math.hypot(fx, fy) ** (1 / l);
+  const th = Math.atan2(fy, fx) / l;
+  const toF = (t) => (BigInt(Math.round(t * 2 ** 50)) << B) >> 50n;
+  const L = BigInt(l);
+  const out = [];
+  for (const j of which) {
+    let zr = toF(rho * Math.cos(th + (2 * Math.PI * j) / l));
+    let zi = toF(rho * Math.sin(th + (2 * Math.PI * j) / l));
+    for (let it = 0; it < 6 + Math.ceil(Math.log2(bits)); it++) {
+      // z ← ((ℓ − 1)z + a / z^(ℓ−1)) / ℓ
+      let [pr, pi] = [1n << B, 0n];
+      for (let e = 1; e < l; e++) [pr, pi] = [(pr * zr - pi * zi) >> B, (pr * zi + pi * zr) >> B];
+      const den = (pr * pr + pi * pi) >> B;
+      if (den === 0n) break;
+      const qr = (ax * pr + ay * pi) / den;
+      const qi = (ay * pr - ax * pi) / den;
+      const nr = ((L - 1n) * zr + qr) / L;
+      const ni = ((L - 1n) * zi + qi) / L;
+      const done = ab(nr - zr) < 4n && ab(ni - zi) < 4n;
+      [zr, zi] = [nr, ni];
+      if (done) break;
+    }
+    const S = BigInt(Math.abs(s));
+    out.push(s >= 0 ? [zr << S, zi << S] : [zr >> S, zi >> S]);
+  }
+  return out;
+}
+/**
+ * The ℓ-th root in the field of the integral element g (order coordinates), or
+ * null when there is none: roots at every place, the coordinates read off
+ * through the trace form, and the result checked exactly.
+ */
+function fieldRoot(O, g, l) {
+  const n = O.n;
+  const [r1] = O.signature;
+  const bits = BITS + 64 * Math.ceil((2 * bitSize(g)) / 64);
+  const B = BigInt(bits);
+  const om = omegaAt(O, bits);
+  const sig = embedWith(om, g);
+  const choices = [];
+  let count = 1;
+  for (let k = 0; k < sig.length; k++) {
+    const [x, y] = sig[k];
+    let c;
+    if (k < r1) {
+      if (x === 0n || (x < 0n && l % 2 === 0)) return null;
+      const [[m]] = complexRoots(x < 0n ? -x : x, 0n, l, bits, [0]);
+      c = x < 0n ? [[-m, 0n]] : l % 2 === 0 ? [[m, 0n], [-m, 0n]] : [[m, 0n]];
+    } else c = complexRoots(x, y, l, bits, Array.from({ length: l }, (_, j) => j));
+    if (!c.length) return null;
+    choices.push(c);
+    count *= c.length;
+    if (count > 20000) return null;
+  }
+  const { inv, den } = inverseInt(O.traceMatrix);
+  const half = 1n << (B - 1n);
+  const tol = 1n << (B - 20n);
+  const pick = new Array(choices.length).fill(0);
+  for (;;) {
+    // Tr(β·ωⱼ) from the conjugates, then β = Tr-vector · (trace matrix)⁻¹
+    const tr = new Array(n).fill(0n);
+    for (let k = 0; k < choices.length; k++) {
+      const [br, bi] = choices[k][pick[k]];
+      for (let j = 0; j < n; j++) {
+        const [wr, wi] = om[k][j];
+        tr[j] += k < r1 ? (br * wr) >> B : (2n * (br * wr - bi * wi)) >> B;
+      }
+    }
+    const b = [];
+    for (const t of rowTimes(tr, inv)) {
+      const x = t / den;
+      const q = (x + half) >> B;
+      const err = x - (q << B);
+      if ((err < 0n ? -err : err) > tol) break;
+      b.push(q);
+    }
+    if (b.length === n && powCoords(O, b, BigInt(l)).every((x, i) => x === g[i])) return b;
+    let k = 0;
+    while (k < pick.length && pick[k] === choices[k].length - 1) pick[k++] = 0;
+    if (k === pick.length) return null;
+    pick[k]++;
+  }
+}
+/** A basis of the vectors killed by every row, modulo the prime l (rows of small numbers). */
+function nullspaceSmall(rows, G, l) {
+  const A = rows.map((r) => Array.from(r));
+  const pivots = [];
+  let rank = 0;
+  for (let c = 0; c < G && rank < A.length; c++) {
+    let p = rank;
+    while (p < A.length && A[p][c] === 0) p++;
+    if (p === A.length) continue;
+    [A[rank], A[p]] = [A[p], A[rank]];
+    const inv = Number(powmod(BigInt(A[rank][c]), BigInt(l - 2), BigInt(l))) || 1;
+    for (let j = 0; j < G; j++) A[rank][j] = (A[rank][j] * inv) % l;
+    for (let i = 0; i < A.length; i++) {
+      if (i === rank || A[i][c] === 0) continue;
+      const f = A[i][c];
+      for (let j = 0; j < G; j++) A[i][j] = (A[i][j] + (l - f) * A[rank][j]) % l;
+    }
+    pivots.push(c);
+    rank++;
+  }
+  const out = [];
+  for (let c = 0; c < G; c++) {
+    if (pivots.includes(c)) continue;
+    const v = new Array(G).fill(0);
+    v[c] = 1;
+    pivots.forEach((pc, i) => (v[pc] = (l - A[i][c]) % l));
+    out.push(v);
+  }
+  return out;
+}
+
 /** A basis of the lattice spanned by the rows (order coordinates) that is LLL-reduced for the T₂ norm. */
 function reducedBasis(O, rows) {
   const n = O.n;
@@ -261,6 +408,7 @@ class Search {
     this.tested = 0;
     this.budget = options.budget ?? 400000;
     this.tors = torsion(O);
+    this.roots = 0; // relation elements that came from taking roots
   }
   rowOf(v, N) {
     // the exponents of (v) over the factor base, or null when it does not factor there
@@ -431,27 +579,50 @@ class Search {
   /**
    * Is the group ℓ-saturated: no element outside its ℓ-th powers is an ℓ-th power in the field?
    * `which` is "all" (the group generated by the relation elements and the roots of unity, inside
-   * the S-units) or "units" (the units found, inside all units).
+   * the S-units) or "units" (the units found, inside all units). Returns true, or the exponents
+   * (below ℓ, over the relation elements, the units and the root of unity) of a product that
+   * every character takes for an ℓ-th power.
    */
   saturated(l, res, which) {
     const { O, k, r, rels } = this;
     const L = BigInt(l);
-    res._gens ??= {};
-    if (!res._gens[which]) {
-      // "all": the relation elements and the root of unity; "units": the fundamental units and the root of unity
-      const gens = which === "all" ? [...rels.slice(0, res.m).map((x) => x.v), this.tors.zeta] : [...res.units.map((u) => u.v), this.tors.zeta];
-      const small = gens.every((v) => v.every((x) => x > -(1n << 50n) && x < 1n << 50n));
-      res._gens[which] = { gens, small, gnum: small ? gens.map((v) => Float64Array.from(v, Number)) : null };
-    }
-    const { gens, small, gnum } = res._gens[which];
-    const G = gens.length;
-    const target = (which === "all" ? k : 0) + r + (this.tors.w % l === 0 ? 1 : 0);
+    const withZeta = this.tors.w % l === 0;
+    const nrel = which === "all" ? res.m : 0;
+    const raw = [...rels.slice(0, nrel).map((x) => x.v), ...res.units.map((u) => u.v), ...(withZeta ? [this.tors.zeta] : [])];
+    const R = raw.length;
+    const lim = 1n << 50n;
+    const rawNum = raw.map((v) => (v.every((x) => x > -lim && x < lim) ? Float64Array.from(v, Number) : null));
+    // a basis of the group: the reduced relation vectors (products of relation elements), the units, the root of unity
+    const combos =
+      which === "all"
+        ? res.Bs.map((b) => {
+            const row = new Int32Array(R);
+            for (let j = 0; j < nrel; j++) row[j] = ((b.t[j] % l) + l) % l;
+            return row;
+          })
+        : [];
+    const G = combos.length + (R - nrel);
+    const target = G;
     const n = O.n;
-    const ech = []; // reduced rows (Int32Array over the generators) with their pivots
+    const ech = []; // reduced rows (Int32Array over the basis) with their pivots
     let rank = 0;
     let cols = 0;
     let q = this.limit > L ? this.limit - (this.limit % L) + 1n : 1n;
+    const dl = new Int32Array(R);
     const vec = new Int32Array(G);
+    const failure = () => {
+      const [e] = nullspaceSmall(
+        ech.map((x) => x.row),
+        G,
+        l,
+      );
+      const exps = new Array(R).fill(0);
+      combos.forEach((row, i) => {
+        if (e[i]) for (let j = 0; j < nrel; j++) exps[j] = (exps[j] + e[i] * row[j]) % l;
+      });
+      for (let j = nrel; j < R; j++) exps[j] = e[combos.length + j - nrel];
+      return { raw, exps };
+    };
     while (rank < target) {
       q += L;
       if (q <= this.limit || O.polyDiscriminant % q === 0n || !isPrime(q)) continue;
@@ -470,7 +641,7 @@ class Search {
         }
         Tq = quo;
       }
-      const fast = small && q < 1n << 26n;
+      const fast = q < 1n << 26n;
       const qn = Number(q);
       for (const t of roots) {
         if (rank >= target) break;
@@ -480,6 +651,17 @@ class Search {
         for (let j = 1; j < n; j++) pw.push((pw[j - 1] * t) % q);
         const wv = O.W.map((row) => (((row.reduce((s, c, j) => s + c * pw[j], 0n) % q) + q) % q * dinv) % q);
         const e = (q - 1n) / L;
+        const residue = (g) => {
+          const v = raw[g];
+          let x = 0n;
+          for (let i = 0; i < n; i++) x += v[i] * wv[i];
+          x = ((x % q) + q) % q;
+          if (x === 0n) throw new Error("a relation element vanishes at an outside prime");
+          return x;
+        };
+        // baby steps sized for R lookups: about 2·√(ℓ·R) operations in all
+        const s = Math.min(l, Math.ceil(Math.sqrt(l * R)));
+        const giants = Math.ceil(l / s);
         if (fast) {
           const mulm = (a, b) => (a * b) % qn;
           const pown = (a, ex) => {
@@ -494,9 +676,6 @@ class Search {
           const en = Number(e);
           let hgen = 1;
           for (let g0 = 2; hgen === 1; g0++) hgen = pown(g0, en);
-          // baby steps sized for G lookups: about 2·√(ℓ·G) operations in all
-          const s = Math.min(l, Math.ceil(Math.sqrt(l * G)));
-          const giants = Math.ceil(l / s);
           const baby = new Map();
           let cur = 1;
           for (let j = 0; j < s; j++) {
@@ -505,11 +684,13 @@ class Search {
           }
           const giant = pown(hgen, qn - 1 - s);
           const wn = Float64Array.from(wv, Number);
-          for (let g = 0; g < G; g++) {
-            const v = gnum[g];
+          for (let g = 0; g < R; g++) {
+            const v = rawNum[g];
             let x = 0;
-            for (let i = 0; i < n; i++) x = (x + (((v[i] % qn) + qn) % qn) * wn[i]) % qn;
-            if (x === 0) throw new Error("a relation element vanishes at an outside prime");
+            if (v) {
+              for (let i = 0; i < n; i++) x = (x + (((v[i] % qn) + qn) % qn) * wn[i]) % qn;
+              if (x === 0) throw new Error("a relation element vanishes at an outside prime");
+            } else x = Number(residue(g));
             let y = pown(x, en);
             let d = -1;
             for (let i = 0; i <= giants; i++) {
@@ -521,14 +702,11 @@ class Search {
               y = mulm(y, giant);
             }
             if (d < 0) throw new Error("discrete logarithm failed");
-            vec[g] = d;
+            dl[g] = d;
           }
         } else {
           let hgen = 1n;
           for (let g0 = 2n; hgen === 1n; g0++) hgen = powmod(g0, e, q);
-          // baby steps sized for G lookups: about 2·√(ℓ·G) operations in all
-          const s = Math.min(l, Math.ceil(Math.sqrt(l * G)));
-          const giants = Math.ceil(l / s);
           const baby = new Map();
           let cur = 1n;
           for (let j = 0; j < s; j++) {
@@ -536,13 +714,8 @@ class Search {
             cur = (cur * hgen) % q;
           }
           const giant = powmod(hgen, q - 1n - BigInt(s), q);
-          for (let g = 0; g < G; g++) {
-            const v = gens[g];
-            let x = 0n;
-            for (let i = 0; i < n; i++) x += v[i] * wv[i];
-            x = ((x % q) + q) % q;
-            if (x === 0n) throw new Error("a relation element vanishes at an outside prime");
-            let y = powmod(x, e, q);
+          for (let g = 0; g < R; g++) {
+            let y = powmod(residue(g), e, q);
             let d = -1;
             for (let i = 0; i <= giants; i++) {
               const j = baby.get(y);
@@ -553,9 +726,16 @@ class Search {
               y = (y * giant) % q;
             }
             if (d < 0) throw new Error("discrete logarithm failed");
-            vec[g] = d;
+            dl[g] = d;
           }
         }
+        // the character on the basis
+        combos.forEach((row, i) => {
+          let sum = 0;
+          for (let j = 0; j < nrel; j++) sum += row[j] * dl[j];
+          vec[i] = sum % l;
+        });
+        for (let j = nrel; j < R; j++) vec[combos.length + j - nrel] = dl[j];
         cols++;
         for (const { piv, row } of ech) {
           const f = vec[piv];
@@ -576,8 +756,31 @@ class Search {
           rank++;
         }
       }
-      if (cols > 3 * target + 60) return false;
+      if (cols > 3 * target + 60) return failure();
     }
+    return true;
+  }
+  /**
+   * After a failed test: the product named by the failure should be an ℓ-th power. Take its root in
+   * the field and add it to the relation elements; false when there is no root to take.
+   */
+  repair(l, { raw, exps }) {
+    const O = this.O;
+    if (l > 97) return false;
+    let g = unitVec(0, O.n);
+    exps.forEach((e, j) => {
+      if (e) g = O._mul(g, powCoords(O, raw[j], BigInt(e)));
+    });
+    if (bitSize(g) > 60000) return false;
+    const beta = fieldRoot(O, g, l);
+    if (!beta) return false;
+    const key = beta.join(",");
+    if (this.seen.has(key)) return false;
+    this.seen.add(key);
+    const row = this.rowOf(beta, abs(O._norm(beta)));
+    if (!row) return false;
+    this.rels.push({ v: beta, row });
+    this.roots++;
     return true;
   }
 }
@@ -725,52 +928,54 @@ function compute(O, options) {
       stall = 0;
       if (S.echelon.length < S.k || S.rels.length < S.k + S.r + S.extra) continue;
     }
-    analysedAt = S.rels.length;
-    const res = S.analyse();
+    let res;
+    let certificate;
+    let ok;
+    for (;;) {
+      analysedAt = S.rels.length;
+      res = S.analyse();
+      if (!res) break;
+      last = res;
+      ok = true;
+      let failure = null;
+      if (forms) {
+        ok = res.h === forms.h && Math.abs(res.regulator / forms.regulator - 1) < 1e-9;
+        certificate = { method: "binary quadratic forms", narrowClassNumber: forms.narrow, formClassNumber: forms.h, minkowskiBound: S.M, relations: res.m };
+      } else if (options.certify === false) {
+        ok = false;
+        rounds = Infinity;
+        certificate = { method: "relations only, not certified", minkowskiBound: S.M, relations: res.m };
+      } else {
+        // [found : true] = (h′/h)·(R′/R). A prime ℓ can divide h′/h only if it divides h′: those ℓ get the
+        // full test. Any other ℓ can only divide R′/R ≤ R′/low, and the units alone are tested up to that bound.
+        const low = Math.max(REG_LOW, REG_LOW_PER_ROOT * S.tors.w);
+        const B = Math.floor((1.0001 * res.regulator) / low);
+        const hPrimes = res.h > 1n ? factor(res.h).map((f) => Number(f.prime)) : [];
+        certificate = { method: "saturation", minkowskiBound: S.M, relations: res.m, regulatorLowerBound: low, unitIndexBound: B, classNumberPrimes: hPrimes, primesChecked: 0, rootsTaken: S.roots };
+        if (B > maxPrime || hPrimes.some((l) => l > maxPrime)) {
+          ok = false;
+          rounds = Infinity;
+          certificate.note = `the index bound ${B} is above option maxIndexPrime = ${maxPrime}; the result is not certified`;
+        } else {
+          const tests = [...hPrimes.map((l) => [l, "all"]), ...(S.r > 0 ? primeList(B).map(Number).filter((l) => !hPrimes.includes(l)).map((l) => [l, "units"]) : [])];
+          for (const [l, which] of tests) {
+            const out = S.saturated(l, res, which);
+            if (out !== true) {
+              ok = false;
+              failedAt = l;
+              failure = out;
+              break;
+            }
+            certificate.primesChecked++;
+          }
+        }
+      }
+      // a failed test names a product that should be an ℓ-th power: its root is the missing relation
+      if (ok || !failure || S.roots >= 64 || !S.repair(failedAt, failure)) break;
+    }
     if (!res) {
       S.extra += 4;
       continue;
-    }
-    last = res;
-    let certificate;
-    let ok = true;
-    if (forms) {
-      ok = res.h === forms.h && Math.abs(res.regulator / forms.regulator - 1) < 1e-9;
-      certificate = { method: "binary quadratic forms", narrowClassNumber: forms.narrow, formClassNumber: forms.h, minkowskiBound: S.M, relations: res.m };
-    } else if (options.certify === false) {
-      ok = false;
-      rounds = Infinity;
-      certificate = { method: "relations only, not certified", minkowskiBound: S.M, relations: res.m };
-    } else {
-      // [found : true] = (h′/h)·(R′/R). A prime ℓ can divide h′/h only if it divides h′: those ℓ get the
-      // full test. Any other ℓ can only divide R′/R ≤ R′/low, and the units alone are tested up to that bound.
-      const low = Math.max(REG_LOW, REG_LOW_PER_ROOT * S.tors.w);
-      const B = Math.floor((1.0001 * res.regulator) / low);
-      const hPrimes = res.h > 1n ? factor(res.h).map((f) => Number(f.prime)) : [];
-      certificate = { method: "saturation", minkowskiBound: S.M, relations: res.m, regulatorLowerBound: low, unitIndexBound: B, classNumberPrimes: hPrimes, primesChecked: 0 };
-      if (B > maxPrime || hPrimes.some((l) => l > maxPrime)) {
-        ok = false;
-        rounds = Infinity;
-        certificate.note = `the index bound ${B} is above option maxIndexPrime = ${maxPrime}; the result is not certified`;
-      } else {
-        for (const l of hPrimes) {
-          if (!S.saturated(l, res, "all")) {
-            ok = false;
-            failedAt = l;
-            break;
-          }
-          certificate.primesChecked++;
-        }
-        for (const l of ok && S.r > 0 ? primeList(B).map(Number) : []) {
-          if (hPrimes.includes(l)) continue;
-          if (!S.saturated(l, res, "units")) {
-            ok = false;
-            failedAt = l;
-            break;
-          }
-          certificate.primesChecked++;
-        }
-      }
     }
     if (ok) return finish(S, res, true, certificate, forms);
     if (++rounds > (options.rounds ?? 6)) {
