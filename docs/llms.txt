@@ -1,0 +1,197 @@
+# @ratmath/numtheory
+
+> Number theory for RatMath: primes with certificates, congruences, Diophantine equations, p-adic numbers, elliptic curves, number fields with proven class groups and units, and zeta and L values. Part of the RatMath Shelf; numbers come from @ratmath/core (a peer dependency). ESM: `import * as numtheory from "@ratmath/numtheory"`.
+
+Built from 0.3.0, commit 74c2c8b. `file:line` is relative to the package root (also node_modules/@ratmath/numtheory/); on GitHub: https://github.com/ratmath/numtheory/blob/74c2c8b/<file>#L<line>. Docs pages are under https://ratmath.com/numtheory/. Full types: index.d.ts.
+
+Types: `type Whole = bigint | number | string | Rational`; `type RationalLike = bigint | number | string | Rational`; `type Certificate = SmallCertificate | PocklingtonCertificate | BLSCertificate | EllipticCertificate`; `type CurvePoint<T> = { readonly x: T; readonly y: T; readonly infinity?: undefined } | { readonly infinity: true }`; `type PointLike<T> = CurvePoint<T> | [RationalLike, RationalLike] | { x: RationalLike; y: RationalLike } | null`; `type ArithmeticFunction = (n: bigint) => bigint`; `type IntPoly = Whole[]`; `type Matrix2 = [[bigint, bigint], [bigint, bigint]]`; `type FormLike = Form | [Whole, Whole, Whole]`; `type FieldLike = NumberField | Order | Array<bigint | number | string | Rational | [bigint, bigint]>`; `type ElementLike = NumberFieldElement | bigint | number | Rational`; `type PlanePoint = [RationalLike, RationalLike] | { re: RationalLike; im?: RationalLike }`
+
+## Docs
+
+- https://ratmath.com/numtheory/llms-full.txt: every page below as Markdown, each with a runnable example
+- Pages: index (Overview), reference (Reference), explore (Explore), primes (Primes and certificates), prime-counting (Counting primes), factoring (Factoring), ecm (The elliptic curve method), elliptic-certificates (Elliptic curve certificates), arithmetic-functions (Arithmetic functions), congruences (Congruences), reciprocity (Quadratic reciprocity), squares (Sums of squares), diophantine (Linear equations), continued-fractions (Continued fractions), pell (Pell equations), quadratic-forms (Quadratic forms), elliptic-curves (Elliptic curves), point-counting (Counting points), number-fields (Rings of integers), prime-ideals (Prime ideals), class-groups (Class groups), units (Units), characters (Dirichlet characters), l-values (Zeta and L values), padic (p-adic numbers)
+
+## API
+
+name(params) → result — meaning · file:line · docs page
+
+- `NumberTheoryError class: code` · src/int.js:6 · reference
+- `isqrt(n: bigint) → bigint` — ⌊√n⌋ for n ≥ 0. · src/int.js:62 · reference
+- `iroot(n: bigint, k: number | bigint) → bigint` — ⌊n^(1/k)⌋ for n ≥ 0. · src/int.js:82 · reference
+- `gcd(a: bigint, b: bigint) → bigint` · src/int.js:49 · congruences
+- `lcm(a: bigint, b: bigint) → bigint` · src/int.js:55 · reference
+- `egcd(a: bigint, b: bigint) → { g: bigint; x: bigint; y: bigint }` — { g, x, y } with a·x + b·y = g = gcd(a, b) ≥ 0. · src/int.js:120 · reference
+- `primes(limit: Whole) → bigint[]` — The primes up to a limit (at most 10⁷ here), as BigInts, by the sieve of Eratosthenes. · src/primes.js:41 · primes
+- `primePi(x: Whole) → bigint` — π(x): how many primes are ≤ x. · src/primes.js:51 · primes
+- `nthPrime(k: Whole) → bigint` — The k-th prime (the 1st is 2), for k up to about 5·10⁶. · src/primes.js:61 · primes
+- `isPrime(n: Whole) → boolean` — True when n is prime. · src/primes.js:83 · primes
+- `isProbablePrime(n: bigint | number) → boolean` · from @ratmath/algebraic · primes
+- `nextPrime(n: Whole) → bigint` — The least prime > n. · src/primes.js:94 · primes
+- `prevPrime(n: Whole) → bigint` — The greatest prime < n (n > 2). · src/primes.js:103 · primes
+- `primesBetween(a: Whole, b: Whole) → bigint[]` — The primes in [a, b], b < 2^64 and b − a ≤ 10⁷. · src/primes.js:113 · primes
+- `pollardRho(n: Whole, options?: { steps?: number; seed?: bigint }) → bigint | null` — A nontrivial factor of composite n by Pollard's rho (Brent's cycle finding), or null within the step budget. · src/primes.js:126 · factoring
+- `pollardPm1(n: Whole, bound?: number) → bigint | null` — Pollard's p − 1: finds a prime factor p of n when p − 1 has only small prime factors (all ≤ bound). · src/primes.js:172 · factoring
+- `trialDivide(n: Whole, limit?: number) → { found: Map<bigint, number>; rest: bigint }` — Split off small prime factors (below `limit`); returns { found: Map(prime → exponent), rest }. · src/primes.js:188 · reference
+- `factor(n: Whole, options?: { prove?: boolean; effort?: number }) → PrimeFactor[]` — The prime factorisation of n ≠ 0 as [{ prime, exponent, proven }] in increasing order (the sign is dropped). · src/primes.js:213 · primes
+- `formatFactors(factors: Array<{ prime: bigint; exponent: number }>) → string` — "2^3 · 3 · 5^2" for a factorisation. · src/primes.js:244 · factoring
+- `provePrime( n: Whole, options?: { budget?: number; elliptic?: boolean; maxDiscriminant?: number; maxClassNumber?: number }, ) → PrimalityProof` — Try to prove n prime. · src/primes.js:291 · primes
+- `millerRabinWitness(n: bigint, a: bigint) → boolean` — True when a proves n composite by the strong (Miller–Rabin) test. · src/primes.js:320 · reference
+- `PROVEN_BELOW: bigint` · src/primes.js:16 · reference
+- `verifyCertificate(cert: Certificate) → { valid: true } | { valid: false; reason: string }` — Check a primality certificate from provePrime. · src/verify.js:117 · primes
+- `verifyComposite(n: bigint, proof: { factor?: bigint; witness?: bigint }) → { valid: true } | { valid: false; reason: string }` — Check that a proof of compositeness holds: a proper factor, or a Miller–Rabin witness. · src/verify.js:170 · primes
+- `EllipticCurve class: a1, a2, a3, a4, a6, b2, b4, b6, b8, c4, c6, discriminant, j, modulus, field, coefficients, isShort, infinity, toString, point, has, equal, neg, add, sub, double, mul, shortModel, minimalModel, badPrimes, reduction, conductor, modulo, torsion, naiveHeight, exact, rationalPoints, trace, liftX, points, randomPoint, structure, divisionPolynomial` · src/elliptic.js:67 · reference
+- `ellipticCurve(coefficients: RationalLike[], options?: { mod?: undefined | null }) → EllipticCurve<Rational> (+1 overload)` — An elliptic curve from its coefficients: [a, b] for y² = x³ + ax + b, or [a1, a2, a3, a4, a6] for the long Weierstrass form. · src/elliptic.js:642 · elliptic-curves
+- `ecm(n: Whole, options?: { B1?: number; B2?: number; curves?: number; sigma?: Whole; details?: false }) → bigint | null (+1 overload)` — The elliptic curve method: a proper factor of n, or null when `curves` curves with bounds B1 and B2 (default 100·B1) find none. · src/ecm.js:133 · ecm
+- `ecmCurve(n: Whole, sigma: Whole, options?: { B1?: number; B2?: number }) → EcmReport` — One curve of the elliptic curve method on n: Suyama's curve for σ ≥ 6, with bounds B1 and B2. · src/ecm.js:34 · ecm
+- `classPolynomial(D: number | bigint) → bigint[] | null` — The Hilbert class polynomial H_D for a negative discriminant D: the monic integer polynomial whose roots are the j-invariants of the curves with complex… · src/ecpp.js:110 · elliptic-certificates
+- `divisors(n: Whole) → bigint[]` — The positive divisors of n, in increasing order. · src/arith.js:15 · arithmetic-functions
+- `sigma(n: Whole, k?: number) → bigint` — σ_k(n) = Σ_{d | n} d^k (k = 1 by default: the sum of divisors). · src/arith.js:28 · ecm
+- `tau(n: Whole) → bigint` — τ(n), the number of divisors. · src/arith.js:42 · arithmetic-functions
+- `mobius(n: Whole) → bigint` — μ(n): 0 if a square divides n, else (−1)^(number of prime factors). · src/arith.js:46 · arithmetic-functions
+- `totient(n: Whole) → bigint` — Euler's φ(n): how many of 1…n are prime to n. · src/arith.js:52 · arithmetic-functions
+- `jordan(n: Whole, k: number) → bigint` — Jordan's totient J_k(n) = n^k Π (1 − p^−k). · src/arith.js:58 · reference
+- `carmichael(n: Whole) → bigint` — Carmichael's λ(n): the exponent of the group of units mod n, the least m with a^m ≡ 1 for every a prime to n. · src/arith.js:65 · arithmetic-functions
+- `omega(n: Whole) → bigint` — ω(n): the number of distinct prime factors. · src/arith.js:76 · arithmetic-functions
+- `bigOmega(n: Whole) → bigint` — Ω(n): the number of prime factors counted with multiplicity. · src/arith.js:80 · arithmetic-functions
+- `liouville(n: Whole) → bigint` — Liouville's λ(n) = (−1)^Ω(n). · src/arith.js:84 · reference
+- `radical(n: Whole) → bigint` — rad(n): the product of the distinct primes dividing n. · src/arith.js:88 · reference
+- `isSquarefree(n: Whole) → boolean` · src/arith.js:91 · reference
+- `aliquotSum(n: Whole) → bigint` — s(n) = σ(n) − n, the sum of the proper divisors. · src/arith.js:95 · reference
+- `classify(n: Whole) → "perfect" | "abundant" | "deficient"` — "perfect", "abundant" or "deficient", by comparing σ(n) with 2n. · src/arith.js:99 · arithmetic-functions
+- `isPerfect(n: Whole) → boolean` · src/arith.js:104 · reference
+- `aliquotSequence(n: Whole, options?: { steps?: number; max?: bigint }) → { terms: bigint[]; ending: string }` — The aliquot sequence n, s(n), s(s(n)), …, until it reaches 1 (then 0), enters a cycle, or the step limit. · src/arith.js:110 · arithmetic-functions
+- `amicablePairs(limit: Whole) → Array<[bigint, bigint]>` — The amicable pairs [a, b], a < b ≤ limit (s(a) = b, s(b) = a), by sieving σ up to the limit (at most 10⁷). · src/arith.js:129 · arithmetic-functions
+- `perfectNumbers(count: Whole) → bigint[]` — The even perfect numbers 2^(p−1)(2^p − 1) for the first `count` Mersenne primes 2^p − 1 (Euclid and Euler: these are all the even ones). · src/arith.js:146 · arithmetic-functions
+- `lucasLehmer(p: Whole) → boolean` — The Lucas–Lehmer test: for an odd prime p, 2^p − 1 is prime exactly when s_(p−2) ≡ 0, with s_0 = 4, s_(k+1) = s_k² − 2. · src/arith.js:162 · reference
+- `dirichlet(f: ArithmeticFunction, g: ArithmeticFunction) → ArithmeticFunction` — The Dirichlet convolution f g: n ↦ Σ_{d | n} f(d)·g(n/d). · src/arith.js:175 · arithmetic-functions
+- `mobiusInversion(F: ArithmeticFunction) → ArithmeticFunction` — Möbius inversion: given F(n) = Σ_{d | n} f(d), recover f(n) = Σ_{d | n} μ(d)·F(n/d). · src/arith.js:182 · arithmetic-functions
+- `unit: ArithmeticFunction` — The Dirichlet identity ε, the constant 1, and the identity function, for building convolutions. · src/arith.js:186 · arithmetic-functions
+- `one: ArithmeticFunction` · src/arith.js:187 · arithmetic-functions
+- `id: ArithmeticFunction` · src/arith.js:188 · arithmetic-functions
+- `isMultiplicative(f: ArithmeticFunction, limit?: number) → boolean` — True when f(mn) = f(m)f(n) for all coprime m, n ≤ limit (a check on examples, not a proof). · src/arith.js:190 · arithmetic-functions
+- `solveLinear( a: Whole, b: Whole, m: Whole, ) → { solutions: bigint[]; modulus: bigint; g: bigint; reduced?: { x: bigint; modulus: bigint }; reason?: string }` — All x mod m with a·x ≡ b (mod m). · src/congruence.js:22 · congruences
+- `crt(residues: Whole[], moduli: Whole[]) → { x: bigint; modulus: bigint } | null` — The Chinese remainder theorem for any moduli: x ≡ rᵢ (mod mᵢ) for all i. · src/congruence.js:38 · congruences
+- `solveLinearSystem(equations: Array<[Whole, Whole, Whole]>) → { x: bigint; modulus: bigint } | null` — Solve a system of linear congruences aᵢ·x ≡ bᵢ (mod mᵢ): each reduced, then combined. { x, modulus } or null. · src/congruence.js:55 · congruences
+- `polyMod(poly: IntPoly, x: Whole, m: Whole) → bigint` — Evaluate an integer polynomial (constant term first) at x, mod m. · src/congruence.js:71 · reference
+- `hensel(poly: IntPoly, r: Whole, p: Whole, k: Whole) → bigint` — Hensel's lemma: a root r of f mod p with f'(r) ≢ 0 (mod p) lifts to a unique root mod p^k, by Newton's step r ← r − f(r)/f'(r). · src/congruence.js:84 · congruences
+- `rootsMod(poly: IntPoly, m: Whole) → bigint[]` — Every root of the integer polynomial f (coefficients, constant first) modulo m: roots mod each prime power of m, combined by the Chinese remainder theorem. · src/congruence.js:125 · congruences
+- `hasPrimitiveRoot(n: Whole) → boolean` — True when n has a primitive root: n = 1, 2, 4, p^k or 2p^k for an odd prime p. · src/congruence.js:144 · reference
+- `primitiveRootMod(n: Whole) → bigint | null` — The least primitive root modulo n (a generator of the units mod n), or null when there is none. · src/congruence.js:153 · congruences
+- `order(a: Whole, n: Whole) → bigint` — The order of a modulo n: the least k > 0 with a^k ≡ 1. · src/congruence.js:164 · congruences
+- `discreteLog(g: Whole, h: Whole, n: Whole) → bigint | null` — The index (discrete logarithm) of h to the base g modulo n: the least x ≥ 0 with g^x ≡ h, or null. · src/congruence.js:172 · congruences
+- `discreteLogMod` · from @ratmath/algebraic · reference
+- `valuation(n: Whole, p: Whole) → number` — v_p(n), the exponent of p in n (Infinity for 0). · src/congruence.js:198 · padic
+- `jacobi(a: Whole, n: Whole) → -1 | 0 | 1` — The Jacobi symbol (a/n) for odd n > 0, by reciprocity: −1, 0 or 1 (as a number). · src/quadratic.js:17 · reciprocity
+- `legendre(a: Whole, p: Whole) → -1 | 0 | 1` — The Legendre symbol (a/p) for an odd prime p. · src/quadratic.js:34 · reciprocity
+- `kronecker(a: Whole, n: Whole) → -1 | 0 | 1` — The Kronecker symbol (a/n) for any whole n, extending Jacobi's to even and negative n. · src/quadratic.js:40 · reference
+- `jacobiSteps(a: Whole, n: Whole) → { value: -1 | 0 | 1; steps: string[] }` — The Jacobi symbol computed with every step written out: reduce the top mod the bottom, take out factors of 2 by the second supplement, flip by quadratic… · src/quadratic.js:63 · reciprocity
+- `eulerCriterion(a: Whole, p: Whole) → { power: bigint; value: -1 | 0 | 1 }` — Euler's criterion: a^((p−1)/2) mod p is 1 for a residue, p − 1 for a non-residue, 0 when p | a. · src/quadratic.js:107 · reciprocity
+- `gaussLemma(a: Whole, p: Whole) → { value: -1 | 1; mu: number; large: bigint[] }` — Gauss's lemma: (a/p) = (−1)^μ where μ counts the least positive residues of a, 2a, …, ((p−1)/2)·a that exceed p/2. · src/quadratic.js:117 · reciprocity
+- `quadraticResidues(n: Whole) → bigint[]` — The quadratic residues mod n: the distinct squares x² mod n, sorted (n up to 10⁶). · src/quadratic.js:130 · reciprocity
+- `sqrtsMod(a: Whole, n: Whole) → bigint[]` — Every x mod n with x² ≡ a (mod n), sorted. · src/quadratic.js:139 · reciprocity
+- `sqrtMod(a: bigint, p: bigint) → bigint | null` · from @ratmath/algebraic · reciprocity
+- `primeAsTwoSquares(p: Whole) → [bigint, bigint]` — A prime p ≡ 1 (mod 4) as a² + b² (a > b > 0): a square root of −1 mod p, then Euclid's algorithm until the remainder drops below √p. · src/squares.js:23 · squares
+- `twoSquares(n: Whole) → [bigint, bigint] | null` — One way to write n as a² + b² (a ≥ b ≥ 0), or null when there is none (twoSquaresReason says why). · src/squares.js:73 · reference
+- `twoSquaresAll(n: Whole) → Array<[bigint, bigint]>` — Every way to write n as a² + b² with a ≥ b ≥ 0, sorted by a descending (empty when there is none). · src/squares.js:49 · squares
+- `twoSquaresReason(n: Whole) → { possible: boolean; reason: string }` — Why n is or is not a sum of two squares: { possible, reason }. · src/squares.js:78 · squares
+- `r2(n: Whole) → bigint` — r₂(n): the number of (x, y) in Z² with x² + y² = n, signs and order counted: 4·(d₁(n) − d₃(n)). · src/squares.js:87 · squares
+- `threeSquares(n: Whole) → [bigint, bigint, bigint] | null` — n as a² + b² + c² (a ≥ b ≥ c ≥ 0), or null exactly when n = 4^a(8b + 7) (Legendre and Gauss). · src/squares.js:105 · squares
+- `fourSquares(n: Whole) → [bigint, bigint, bigint, bigint]` — n as a sum of four squares (Lagrange: always possible), a ≥ b ≥ c ≥ d ≥ 0. · src/squares.js:115 · squares
+- `r4(n: Whole) → bigint` — r₄(n) = 8·Σ d over the divisors d of n not divisible by 4 (Jacobi). · src/squares.js:124 · squares
+- `rk(n: Whole, k: Whole) → bigint` — r_k(n): the number of (x₁, …, x_k) in Z^k with Σ xᵢ² = n, by counting (n up to 10⁵, k up to 12). · src/squares.js:130 · squares
+- `pythagoreanTriples(limit: Whole) → Array<[bigint, bigint, bigint]>` — The primitive Pythagorean triples [a, b, c] (a² + b² = c², gcd 1, a odd) with c ≤ limit, by Euclid's formula a = m² − n², b = 2mn, c = m² + n² for coprime m… · src/squares.js:157 · squares
+- `triplesWithHypotenuse(c: Whole) → Array<[bigint, bigint, bigint]>` — Every triple [a, b, c] with hypotenuse c (a < b), from the representations of c² as a sum of two squares. · src/squares.js:173 · squares
+- `triplesWithLeg(a: Whole) → Array<[bigint, bigint, bigint]>` — Every triple [a, b, c] with a leg equal to a, from the factor pairs of a² of equal parity. · src/squares.js:181 · squares
+- `linearDiophantine( coefficients: Whole[], c: Whole, ) → { solvable: true; particular: bigint[]; basis: bigint[][]; g: bigint } | { solvable: false; g: bigint; reason: string }` — All integer solutions of a₁x₁ + … + aₙxₙ = c. · src/diophantine.js:20 · diophantine
+- `nonNegativeSolutions(a: Whole, b: Whole, c: Whole) → { solutions: Array<[bigint, bigint]> }` — The non-negative solutions of a·x + b·y = c (a, b > 0): { solutions } in increasing x. · src/diophantine.js:61 · diophantine
+- `frobenius(coins: Whole[]) → bigint` — The Frobenius number of coin values with gcd 1: the largest amount that cannot be paid. · src/diophantine.js:87 · diophantine
+- `coinWays(amount: Whole, coins: Whole[]) → bigint` — The number of ways to pay an amount with unlimited coins of the given values (order ignored). · src/diophantine.js:114 · diophantine
+- `pellSolutions(D: Whole, N: Whole) → PellResult` — The integer solutions of x² − D·y² = N. · src/diophantine.js:138 · pell
+- `normEquation(D: Whole, n: Whole) → PellResult` — The norm equation N(x + y√D) = x² − D·y² = n in the order Z[√D]; the same as pellSolutions(D, n). · src/diophantine.js:240 · pell
+- `egyptianGreedy(q: RationalLike) → bigint[]` — The greedy (Fibonacci–Sylvester) expansion of a positive fraction as a sum of distinct unit fractions: take the largest 1/n that fits, repeat. · src/diophantine.js:254 · diophantine
+- `egyptianShortest(q: RationalLike, options?: { maxDenominator?: bigint; maxTerms?: number }) → bigint[] | null` — A shortest expansion as distinct unit fractions, by search with a bound on the denominators (default 10⁶); among the shortest, the one with the smallest… · src/diophantine.js:276 · diophantine
+- `Form class: a, b, c, discriminant, at, transform, isPrimitive, isPositiveDefinite, equals, isReduced, reduce, cycle, toString, toArray` · src/forms.js:21 · reference
+- `form(a: Whole | [Whole, Whole, Whole], b?: Whole, c?: Whole) → Form` — A form from (a, b, c) or [a, b, c]. · src/forms.js:89 · quadratic-forms
+- `equivalent(f: FormLike, g: FormLike) → { equivalent: true; matrix: Matrix2 } | { equivalent: false; reason: string }` — Proper equivalence: { equivalent: true, matrix } with f.transform(matrix) equal to g (determinant 1), or { equivalent: false }. · src/forms.js:176 · quadratic-forms
+- `compose(f: FormLike, g: FormLike) → Form` — Gauss composition of two primitive forms of the same discriminant (Shanks's formulas, as in Cohen's Algorithm 5.4.7), reduced. · src/forms.js:195 · quadratic-forms
+- `principalForm(D: Whole) → Form` — The principal form of discriminant D: x² + (D mod 2)xy + ((D mod 2) − D)/4·y², reduced. · src/forms.js:248 · reference
+- `inverseForm(f: FormLike) → Form` — The inverse class: (a, −b, c), reduced. · src/forms.js:255 · reference
+- `reducedForms(D: Whole) → Form[]` — The reduced primitive forms of discriminant D (positive definite ones when D < 0), in a fixed order. · src/forms.js:261 · quadratic-forms
+- `classGroup(D: Whole) → ClassGroup` — The form class group of discriminant D (narrow, when D > 0): classes of primitive forms (positive definite ones when D < 0) under composition. · src/forms.js:305 · quadratic-forms
+- `classNumber(D: Whole) → bigint` — The class number h(D) (the narrow one when D > 0). · src/forms.js:393 · elliptic-certificates
+- `representations(f: FormLike, n: Whole) → Array<[bigint, bigint]>` — Every (x, y) with f(x, y) = n, for a positive definite f (finitely many): from 4a·f = (2ax + by)² + |D|·y², so |y| ≤ √(4an/|D|). · src/forms.js:403 · quadratic-forms
+- `represent(f: FormLike, n: Whole) → [bigint, bigint] | null` — One proper representation (gcd(x, y) = 1) of n > 0 by f, or null. · src/forms.js:430 · quadratic-forms
+- `Padic class: p, vmin, exact, approx, valuation, norm, isZero, mod, digits, toString, equalsTo, add, neg, sub, mul, inv, div, pow, isSquare, shift, sqrt, exp, log` · src/padic.js:33 · padic
+- `padic(x: Padic | RationalLike, p: Whole) → Padic` — A p-adic number from a whole number, a fraction ("3/7", "0.25"), a Rational, or another p-adic number. · src/padic.js:412 · padic
+- `henselRoot(coefficients: Array<Padic | RationalLike>, r0: Whole, p: Whole) → Padic` — The root of a polynomial (p-adic or rational coefficients, constant first, all p-adic integers) that starts with r0, by Hensel's lemma in its general form:… · src/padic.js:308 · padic
+- `teichmuller(a: Whole, p: Whole) → Padic` — The Teichmüller representative of a (not divisible by p): the (p − 1)-th root of unity ≡ a (mod p), as lim a^(p^n). · src/padic.js:350 · padic
+- `expansion(x: RationalLike, p: Whole) → { valuation: number; preperiod: bigint[]; period: bigint[] }` — The p-adic expansion of a rational, which is eventually periodic: { valuation, preperiod, period } with digits read from p^valuation upward, so x = Σ dᵢ… · src/padic.js:378 · padic
+- `padicValuation(x: RationalLike, p: Whole) → number` — v_p(x) of a whole number or fraction, and |x|_p. · src/padic.js:400 · padic
+- `padicNorm(x: RationalLike, p: Whole) → Rational` · src/padic.js:403 · padic
+- `continuedFraction(x: AlgebraicReal | RationalLike, terms?: number) → bigint[]` — The first `terms` partial quotients [a₀; a₁, a₂, …] of a real number (rational or AlgebraicReal) as BigInts. · src/cf.js:108 · continued-fractions
+- `convergents(terms: bigint[]) → Rational[]` — The convergents p/q of a list of partial quotients, as Core Rationals. · src/cf.js:146 · continued-fractions
+- `fromContinuedFraction(terms: bigint[], period?: bigint[] | null) → AlgebraicReal` — The real number [a₀; a₁, …, aₙ] (finite) or [a₀; …, (period repeating)] when `period` is given. · src/cf.js:156 · continued-fractions
+- `periodicContinuedFraction(x: AlgebraicReal) → { preperiod: bigint[]; period: bigint[] }` — The eventually periodic expansion of a quadratic irrational: { preperiod: [a₀, …], period: [aₖ, …] } (BigInts), so x = [preperiod; period, period, …]. · src/cf.js:250 · continued-fractions
+- `pell(D: bigint | number) → { x: bigint; y: bigint; negative: { x: bigint; y: bigint } | null }` — The smallest positive solution of Pell's equation x² − D·y² = 1 (D a positive non-square integer), and of x² − D·y² = −1 when it has one. · src/cf.js:269 · continued-fractions
+- `fundamentalUnit(d: bigint | number) → { unit: NumberFieldElement; norm: number }` — The fundamental unit ε > 1 of the ring of integers of Q(√d) (d > 1 square-free), as an element of NumberField.quadratic(d), with its norm ±1. · src/cf.js:288 · continued-fractions
+- `fromQuadratic(p: bigint, q: bigint, d: bigint, r: bigint) → AlgebraicReal` — (p + q√d)/r as an AlgebraicReal on its minimal polynomial. · src/cf.js:185 · reference
+- `factorInteger` — from @ratmath/algebraic
+- `modPow` — from @ratmath/algebraic
+- `modInverse` — from @ratmath/algebraic
+- `multiplicativeOrder` — from @ratmath/algebraic
+- `primitiveRoot` — from @ratmath/algebraic
+- `lll` — from @ratmath/algebraic
+- `recognize` — from @ratmath/algebraic
+- `Order class: field, degree, discriminant, index, scale, polyDiscriminant, signature, steps, basis, traceMatrix, ramifiedPrimes, unitIdeal, coordinates, element, contains, primesAbove, describePrime, ideal, toString` · src/order.js:42 · reference
+- `PrimeIdeal class: order, p, e, f, norm, generators, valuation, toIdeal, equals, toString` · src/order.js:391 · reference
+- `Ideal class: order, norm, isIntegral, isOne, isPrime, basis, minimum, mul, add, div, pow, inverse, contains, equals, factor, toString` · src/order.js:545 · class-groups
+- `ringOfIntegers(K: FieldLike) → Order` — The ring of integers O_K of a number field: K is a NumberField from · src/order.js:29 · number-fields
+- `integralBasis(K: FieldLike) → NumberFieldElement[]` — The integral basis of K as field elements, ω₁ = 1 first. · src/order.js:36 · reference
+- `fieldDiscriminant(K: FieldLike) → bigint` — The discriminant of the field K (of its ring of integers). · src/order.js:38 · number-fields
+- `primeDecomposition(K: FieldLike, p: Whole) → PrimeIdeal[]` — The prime ideals above p in K: [PrimeIdeal], with p·O = ∏ Pᵢ^eᵢ. · src/order.js:40 · reference
+- `ClassGroup class: field, order, h, generators, proven, certificate, minkowskiBound, factorBase, classOf, isPrincipal, orderOf, toString` · src/classgroup.js:1025 · reference
+- `UnitGroup class: field, order, rank, torsionOrder, rootOfUnity, fundamentalUnits, regulator, proven, certificate, isUnit, exponents, toString` · src/classgroup.js:1155 · reference
+- `idealClassGroup(K: FieldLike, options?: FieldOptions) → ClassGroup` — The ideal class group of a number field: { h, structure, generators, classOf(I), isPrincipal(I), orderOf(I), proven, certificate }. · src/classgroup.js:1227 · class-groups
+- `unitGroup(K: FieldLike, options?: FieldOptions) → UnitGroup` — The unit group: { rank, torsionOrder, rootOfUnity, fundamentalUnits, regulator, exponents(u), isUnit(x), proven }. · src/classgroup.js:1231 · units
+- `fieldClassNumber(K: FieldLike, options?: FieldOptions) → bigint` — The class number of the field. · src/classgroup.js:1235 · reference
+- `regulator(K: FieldLike, options?: FieldOptions) → number` · src/classgroup.js:561 · units
+- `minkowskiBound(K: FieldLike) → bigint` — ⌊the Minkowski bound⌋: every ideal class contains an integral ideal of norm at most this. · src/classgroup.js:39 · class-groups
+- `formToIdeal(f: Form | [Whole, Whole, Whole], K?: FieldLike) → Ideal` — The ideal of the quadratic field of discriminant D that matches a primitive form (a, b, c) of that discriminant: a·Z + ((−b + √D)/2)·Z. · src/classgroup.js:1244 · class-groups
+- `meissel(x: Whole) → { pi: bigint; y: bigint; a: bigint; phi: bigint; P2: bigint }` — π(x) by Meissel's formula, with its pieces: { pi, y, a, phi, P2 } where y = ⌊x^(1/3)⌋ and a = π(y). · src/primecount.js:74 · prime-counting
+- `legendrePhi(x: Whole, a: Whole) → bigint` — Legendre's φ(x, a): how many n in 1 … x have no prime factor among the first a primes. φ(x, 0) = x and φ(x, a) = φ(x, a − 1) − φ(⌊x/p_a⌋, a − 1). · src/primecount.js:48 · prime-counting
+- `DirichletCharacter class: modulus, number, order, conductor, isPrimitive, isPrincipal, isReal, isEven, parity, value, at, exponents, primitive, mul, pow, conjugate, induce, gaussSum, equals, toString` · src/characters.js:69 · reference
+- `dirichletCharacter(q: Whole, m?: Whole) → DirichletCharacter` — The character χ_q(m, ·) in Conrey's numbering; m must be coprime to q. · src/characters.js:291 · characters
+- `dirichletGroup(q: Whole) → DirichletGroup` — The group of Dirichlet characters modulo q: { modulus, order, characters, principal, primitive, real, structure }. · src/characters.js:302 · characters
+- `kroneckerCharacter(D: Whole) → DirichletCharacter` — The Kronecker symbol (D/·) as a Dirichlet character modulo |D|, for a discriminant D ≡ 0 or 1 mod 4 that is not a square. · src/characters.js:356 · characters
+- `bernoulli(n: Whole) → Rational` — The Bernoulli number B_n, with B_1 = −1/2. · src/lfunctions.js:18 · l-values
+- `bernoulliPolynomial(n: Whole, x: RationalLike) → Rational` — The Bernoulli polynomial B_n(x) at a rational x. · src/lfunctions.js:37 · reference
+- `generalizedBernoulli(k: Whole, chi: DirichletCharacter) → Rational | NumberFieldElement` — The generalised Bernoulli number B_{k,χ} = q^(k−1)·Σ χ(a)·B_k(a/q): a Rational for a real character, otherwise an element of the cyclotomic field of the… · src/lfunctions.js:73 · reference
+- `zetaExact(n: Whole) → Rational | { coefficient: Rational; piPower: number; toString(): string }` — ζ(n) in closed form: a Rational for n ≤ 0 (−B_{1−n}/(1−n)), and for even n > 0 the object { coefficient, piPower } standing for coefficient·π^n. · src/lfunctions.js:105 · l-values
+- `lValueExact(chi: DirichletCharacter, n: Whole) → Rational | NumberFieldElement` — L(n, χ) exactly at an integer n ≤ 0: −B_{1−n,χ}/(1−n). · src/lfunctions.js:93 · l-values
+- `zetaValue(s: RationalLike, options?: EnclosureOptions) → RationalInterval (+1 overload)` — A proven enclosure of ζ(s): a RationalInterval for real s, { re, im } for s = [σ, t] or { re, im } in the plane. s is given exactly (whole numbers, fraction… · src/lfunctions.js:237 · l-values
+- `hurwitzZeta(s: RationalLike, a: RationalLike, options?: EnclosureOptions) → RationalInterval (+1 overload)` — A proven enclosure of the Hurwitz zeta function ζ(s, a) = Σ (n + a)^−s for a rational a in (0, 1]. · src/lfunctions.js:242 · l-values
+- `lValue(chi: DirichletCharacter, s: RationalLike | PlanePoint, options?: EnclosureOptions) → RationalInterval | PlaneEnclosure` — A proven enclosure of L(s, χ) = Σ χ(n)·n^−s, continued to the whole plane: a RationalInterval when s is real and χ is a real character, { re, im } otherwise. · src/lfunctions.js:253 · l-values
+- `NumberField` — from @ratmath/algebraic
+- `NumberFieldElement` — from @ratmath/algebraic
+- `plan: readonly PlannedPhase[]` · src/plan.js:4 · reference
+
+## Example
+
+```js
+import { primePi, factor, formatFactors, provePrime, verifyCertificate, twoSquaresAll, pellSolutions, classGroup, classNumber, padic, idealClassGroup, zetaValue } from "@ratmath/numtheory";
+// primes, proofs and a little of everything
+const p = provePrime(2n ** 107n - 1n);
+console.log("2^107 − 1:", p.certificate.kind, verifyCertificate(p.certificate));
+console.log("F₆ =", formatFactors(factor(2n ** 64n + 1n)));
+console.log("1105 as two squares:", twoSquaresAll(1105).map(([a, b]) => `${a}² + ${b}²`).join(", "));
+console.log("x² − 2y² = 7:", pellSolutions(2, 7).solutions(5));
+console.log("h(−3299) =", classNumber(-3299), "structure", classGroup(-3299).structure);
+console.log("Q(∛65):", String(idealClassGroup([-65n, 0n, 0n, 1n])));
+console.log("π(10¹⁰) =", primePi(10n ** 10n), "  ζ(3) ∈", zetaValue(3).compactedDecimalInterval());
+padic("1/3", 5n).toString(16)
+```
+
+## More
+
+- tests/: worked examples for every function
+- https://ratmath.com/core/ (numbers), https://ratmath.com/shelf/ (all the libraries)
