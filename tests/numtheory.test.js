@@ -487,3 +487,19 @@ describe("p-adic numbers", () => {
     expect(() => zero.valuation(100)).toThrow(/may be exactly 0/);
   });
 });
+
+describe("the integer helpers take any whole number", () => {
+  test("egcd, gcd, lcm, isqrt and iroot", async () => {
+    const N = await import("../index.js");
+    const { Integer, Rational } = await import("@ratmath/core");
+    expect(N.egcd(252, 198)).toEqual({ g: 18n, x: 4n, y: -5n });
+    expect(N.egcd("252", 198n)).toEqual({ g: 18n, x: 4n, y: -5n });
+    expect(N.egcd(new Integer(252n), new Rational(198n))).toEqual({ g: 18n, x: 4n, y: -5n });
+    expect(N.gcd(252, 198)).toBe(18n);
+    expect(N.lcm(4, 6n)).toBe(12n);
+    expect(N.isqrt(50)).toBe(7n);
+    expect(N.iroot(30, 3)).toBe(3n);
+    expect(() => N.gcd(1.5, 2)).toThrow(/whole number/);
+    expect(() => N.isqrt(-4)).toThrow(/at least 0/);
+  });
+});

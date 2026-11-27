@@ -1,8 +1,8 @@
 // Shared page furniture for the numtheory docs: the contents column, the theme
 // switch and the code boxes. Add each topic page to PAGES as it is written.
 
-import * as A from "./numtheory.js?v=9f773a4fdd";
-import { mountRunboxes } from "./runbox.js?v=9f773a4fdd";
+import * as A from "./numtheory.js?v=ec942a2b77";
+import { mountRunboxes } from "./runbox.js?v=ec942a2b77";
 
 export { A };
 
