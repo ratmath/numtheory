@@ -13,7 +13,9 @@
 // Phase 7: π(x) by Meissel's formula, Dirichlet characters, and exact and
 // enclosed values of zeta and L functions.
 
-export { NumberTheoryError, isqrt, iroot, gcd, lcm, egcd } from "./src/int.js";
+export { NumberTheoryError } from "./src/int.js";
+import { publicInt } from "./src/int.js";
+export const { isqrt, iroot, gcd, lcm, egcd } = publicInt;
 export {
   primes, primePi, nthPrime, isPrime, isProbablePrime, nextPrime, prevPrime, primesBetween,
   pollardRho, pollardPm1, trialDivide, factor, formatFactors, provePrime, millerRabinWitness, PROVEN_BELOW,

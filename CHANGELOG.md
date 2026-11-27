@@ -2,6 +2,12 @@
 
 ## 0.3.0 (unreleased)
 
+- `egcd`, `isqrt` and `iroot` took BigInts only (`egcd(252, 198)` threw
+  "Invalid mix of BigInt and other type"), and `gcd`/`lcm` gave back numbers
+  for numbers. All five now read any whole number (number, BigInt, numeric
+  string, Core `Integer` or whole `Rational`) and return BigInts, like the rest
+  of the package. Found by the Course Test (ratmath/shelf#7).
+
 Phases 5, 6 and 7 of the roadmap: number fields and L-functions. The plan is
 now fully built.
 

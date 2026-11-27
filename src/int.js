@@ -26,6 +26,7 @@ export function big(x, what = "argument") {
   if (x instanceof Rational || (x && typeof x.numerator === "bigint" && typeof x.denominator === "bigint")) {
     if (x.denominator === 1n) return x.numerator;
   }
+  if (x && typeof x === "object" && typeof x.value === "bigint") return x.value; // Core's Integer
   throw new TypeError(`${what} must be a whole number, not ${typeof x === "string" ? JSON.stringify(x) : String(x)}`);
 }
 /** A whole number ≥ lo. */
@@ -130,3 +131,14 @@ export function inverse(a, m) {
   if (g !== 1n) refuse("no-inverse", `${a} has no inverse mod ${m}: they share the factor ${g}`);
   return mod(x, m);
 }
+
+// The public forms: any whole number in (number, bigint, numeric string, Core
+// Integer or whole Rational), a BigInt out. The bare functions above are the
+// internal BigInt-only ones.
+export const publicInt = {
+  isqrt: (n) => isqrt(atLeast(n, 0n, "n")),
+  iroot: (n, k) => iroot(atLeast(n, 0n, "n"), atLeast(k, 1n, "k")),
+  gcd: (a, b) => gcd(big(a, "a"), big(b, "b")),
+  lcm: (a, b) => lcm(big(a, "a"), big(b, "b")),
+  egcd: (a, b) => egcd(big(a, "a"), big(b, "b")),
+};
