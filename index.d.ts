@@ -1,6 +1,6 @@
 // Type declarations for @ratmath/numtheory.
 
-import type { Rational, RationalInterval } from "@ratmath/core";
+import type { Rational, RationalInterval, Integer } from "@ratmath/core";
 import type { AlgebraicReal, NumberField, NumberFieldElement } from "@ratmath/algebraic";
 
 /** A whole number: a JavaScript integer, a BigInt, decimal text, or a Rational with denominator 1. Non-whole JS numbers are refused. */
@@ -15,11 +15,14 @@ export class NumberTheoryError extends Error {
 
 // ---- integers
 
-export function isqrt(n: bigint): bigint;
-export function iroot(n: bigint, k: number | bigint): bigint;
-export function gcd(a: bigint, b: bigint): bigint;
-export function lcm(a: bigint, b: bigint): bigint;
-export function egcd(a: bigint, b: bigint): { g: bigint; x: bigint; y: bigint };
+/** A whole number: a number, bigint, numeric string, Core Integer or whole Rational. */
+export type WholeLike = number | bigint | string | Integer | Rational;
+export function isqrt(n: WholeLike): bigint;
+export function iroot(n: WholeLike, k: WholeLike): bigint;
+export function gcd(a: WholeLike, b: WholeLike): bigint;
+export function lcm(a: WholeLike, b: WholeLike): bigint;
+/** Bézout: g = gcd(a, b) = a·x + b·y. */
+export function egcd(a: WholeLike, b: WholeLike): { g: bigint; x: bigint; y: bigint };
 
 // ---- primes, factoring, certificates
 
