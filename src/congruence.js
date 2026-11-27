@@ -201,3 +201,33 @@ export function valuation(n, p) {
   const x = big(n, "n");
   return val(x, P);
 }
+
+/**
+ * The exponent of b in n!: Legendre's formula Σ ⌊n/pᵏ⌋ for a prime p, and
+ * for any b ≥ 2 the largest k with bᵏ | n!, the minimum of ⌊v_p(n!)/e⌋ over
+ * the prime powers pᵉ in b (so factorialValuation(100, 10) is the number of
+ * zeros at the end of 100!). A plain number, or a BigInt when it is too
+ * large for one.
+ */
+export function factorialValuation(n, b) {
+  const N = big(n, "n");
+  if (N < 0n) refuse("bad-argument", "n! needs n ≥ 0");
+  const B = big(b, "b");
+  if (B < 2n) throw new RangeError("b must be at least 2");
+  const legendre = (p) => {
+    let sum = 0n;
+    for (let q = N / p; q > 0n; q /= p) sum += q;
+    return sum;
+  };
+  let best = null;
+  for (const [p, e] of primePowers(B)) {
+    const k = legendre(p) / BigInt(e);
+    if (best === null || k < best) best = k;
+  }
+  // a plain number like valuation(), unless it is too large to be one exactly
+  return best <= BigInt(Number.MAX_SAFE_INTEGER) ? Number(best) : best;
+}
+
+function primePowers(B) {
+  return factor(B).map((x) => [x.prime, x.exponent]);
+}

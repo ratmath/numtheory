@@ -2,9 +2,9 @@
 
 > Number theory for RatMath: primes with certificates, congruences, Diophantine equations, p-adic numbers, elliptic curves, number fields with proven class groups and units, and zeta and L values. Part of the RatMath Shelf; numbers come from @ratmath/core (a peer dependency). ESM: `import * as numtheory from "@ratmath/numtheory"`.
 
-Built from 0.3.0, commit 74c2c8b. `file:line` is relative to the package root (also node_modules/@ratmath/numtheory/); on GitHub: https://github.com/ratmath/numtheory/blob/74c2c8b/<file>#L<line>. Docs pages are under https://ratmath.com/numtheory/. Full types: index.d.ts.
+Built from 0.3.0, commit d8bf4a5 plus uncommitted changes. `file:line` is relative to the package root (also node_modules/@ratmath/numtheory/); on GitHub: https://github.com/ratmath/numtheory/blob/d8bf4a5/<file>#L<line>. Docs pages are under https://ratmath.com/numtheory/. Full types: index.d.ts.
 
-Types: `type Whole = bigint | number | string | Rational`; `type RationalLike = bigint | number | string | Rational`; `type Certificate = SmallCertificate | PocklingtonCertificate | BLSCertificate | EllipticCertificate`; `type CurvePoint<T> = { readonly x: T; readonly y: T; readonly infinity?: undefined } | { readonly infinity: true }`; `type PointLike<T> = CurvePoint<T> | [RationalLike, RationalLike] | { x: RationalLike; y: RationalLike } | null`; `type ArithmeticFunction = (n: bigint) => bigint`; `type IntPoly = Whole[]`; `type Matrix2 = [[bigint, bigint], [bigint, bigint]]`; `type FormLike = Form | [Whole, Whole, Whole]`; `type FieldLike = NumberField | Order | Array<bigint | number | string | Rational | [bigint, bigint]>`; `type ElementLike = NumberFieldElement | bigint | number | Rational`; `type PlanePoint = [RationalLike, RationalLike] | { re: RationalLike; im?: RationalLike }`
+Types: `type Whole = bigint | number | string | Rational`; `type RationalLike = bigint | number | string | Rational`; `type WholeLike = number | bigint | string | Integer | Rational`; `type Certificate = SmallCertificate | PocklingtonCertificate | BLSCertificate | EllipticCertificate`; `type CurvePoint<T> = { readonly x: T; readonly y: T; readonly infinity?: undefined } | { readonly infinity: true }`; `type PointLike<T> = CurvePoint<T> | [RationalLike, RationalLike] | { x: RationalLike; y: RationalLike } | null`; `type ArithmeticFunction = (n: bigint) => bigint`; `type IntPoly = Whole[]`; `type Matrix2 = [[bigint, bigint], [bigint, bigint]]`; `type FormLike = Form | [Whole, Whole, Whole]`; `type FieldLike = NumberField | Order | Array<bigint | number | string | Rational | [bigint, bigint]>`; `type ElementLike = NumberFieldElement | bigint | number | Rational`; `type PlanePoint = [RationalLike, RationalLike] | { re: RationalLike; im?: RationalLike }`
 
 ## Docs
 
@@ -16,11 +16,6 @@ Types: `type Whole = bigint | number | string | Rational`; `type RationalLike = 
 name(params) → result — meaning · file:line · docs page
 
 - `NumberTheoryError class: code` · src/int.js:6 · reference
-- `isqrt(n: bigint) → bigint` — ⌊√n⌋ for n ≥ 0. · src/int.js:62 · reference
-- `iroot(n: bigint, k: number | bigint) → bigint` — ⌊n^(1/k)⌋ for n ≥ 0. · src/int.js:82 · reference
-- `gcd(a: bigint, b: bigint) → bigint` · src/int.js:49 · congruences
-- `lcm(a: bigint, b: bigint) → bigint` · src/int.js:55 · reference
-- `egcd(a: bigint, b: bigint) → { g: bigint; x: bigint; y: bigint }` — { g, x, y } with a·x + b·y = g = gcd(a, b) ≥ 0. · src/int.js:120 · reference
 - `primes(limit: Whole) → bigint[]` — The primes up to a limit (at most 10⁷ here), as BigInts, by the sieve of Eratosthenes. · src/primes.js:41 · primes
 - `primePi(x: Whole) → bigint` — π(x): how many primes are ≤ x. · src/primes.js:51 · primes
 - `nthPrime(k: Whole) → bigint` — The k-th prime (the 1st is 2), for k up to about 5·10⁶. · src/primes.js:61 · primes
@@ -81,6 +76,7 @@ name(params) → result — meaning · file:line · docs page
 - `discreteLog(g: Whole, h: Whole, n: Whole) → bigint | null` — The index (discrete logarithm) of h to the base g modulo n: the least x ≥ 0 with g^x ≡ h, or null. · src/congruence.js:172 · congruences
 - `discreteLogMod` · from @ratmath/algebraic · reference
 - `valuation(n: Whole, p: Whole) → number` — v_p(n), the exponent of p in n (Infinity for 0). · src/congruence.js:198 · padic
+- `factorialValuation(n: Whole, b: Whole) → number | bigint` — The exponent of b in n!: Legendre's formula Σ ⌊n/pᵏ⌋ for a prime p, and for any b ≥ 2 the largest k with bᵏ | n!, the minimum of ⌊v_p(n!)/e⌋ over the prime… · src/congruence.js:212 · congruences
 - `jacobi(a: Whole, n: Whole) → -1 | 0 | 1` — The Jacobi symbol (a/n) for odd n > 0, by reciprocity: −1, 0 or 1 (as a number). · src/quadratic.js:17 · reciprocity
 - `legendre(a: Whole, p: Whole) → -1 | 0 | 1` — The Legendre symbol (a/p) for an odd prime p. · src/quadratic.js:34 · reciprocity
 - `kronecker(a: Whole, n: Whole) → -1 | 0 | 1` — The Kronecker symbol (a/n) for any whole n, extending Jacobi's to even and negative n. · src/quadratic.js:40 · reference
@@ -117,7 +113,7 @@ name(params) → result — meaning · file:line · docs page
 - `principalForm(D: Whole) → Form` — The principal form of discriminant D: x² + (D mod 2)xy + ((D mod 2) − D)/4·y², reduced. · src/forms.js:248 · reference
 - `inverseForm(f: FormLike) → Form` — The inverse class: (a, −b, c), reduced. · src/forms.js:255 · reference
 - `reducedForms(D: Whole) → Form[]` — The reduced primitive forms of discriminant D (positive definite ones when D < 0), in a fixed order. · src/forms.js:261 · quadratic-forms
-- `classGroup(D: Whole) → ClassGroup` — The form class group of discriminant D (narrow, when D > 0): classes of primitive forms (positive definite ones when D < 0) under composition. · src/forms.js:305 · quadratic-forms
+- `classGroup(D: Whole) → FormClassGroup` — The form class group of discriminant D (narrow, when D > 0): classes of primitive forms (positive definite ones when D < 0) under composition. · src/forms.js:305 · quadratic-forms
 - `classNumber(D: Whole) → bigint` — The class number h(D) (the narrow one when D > 0). · src/forms.js:393 · elliptic-certificates
 - `representations(f: FormLike, n: Whole) → Array<[bigint, bigint]>` — Every (x, y) with f(x, y) = n, for a positive definite f (finitely many): from 4a·f = (2ax + by)² + |D|·y², so |y| ≤ √(4an/|D|). · src/forms.js:403 · quadratic-forms
 - `represent(f: FormLike, n: Whole) → [bigint, bigint] | null` — One proper representation (gcd(x, y) = 1) of n > 0 by f, or null. · src/forms.js:430 · quadratic-forms

@@ -1,6 +1,6 @@
 # @ratmath/numtheory 0.3.0: full documentation
 
-> Number theory for RatMath: primes with certificates, congruences, Diophantine equations, p-adic numbers, elliptic curves, number fields with proven class groups and units, and zeta and L values. From https://ratmath.com/numtheory/, commit 74c2c8b. Each page ends with a runnable example; in it, PRINT(...) prints.
+> Number theory for RatMath: primes with certificates, congruences, Diophantine equations, p-adic numbers, elliptic curves, number fields with proven class groups and units, and zeta and L values. From https://ratmath.com/numtheory/, commit d8bf4a5. Each page ends with a runnable example; in it, PRINT(...) prints.
 
 
 ---
@@ -181,6 +181,8 @@ Every export of `@ratmath/numtheory`. Whole-number arguments may be numbers, `Bi
 
 | valuation(n, p) | vp​(n); Infinity for 0. |
 
+| factorialValuation(n, b) | The exponent of b in n!: Legendre's formula ∑k​⌊n/pk⌋ for a prime; the largest k with bk∣n! for any b≥2 (trailing zeros in base b). A BigInt when too large for a plain number. |
+
 ### Reciprocity
 
 | Export | What it does |
@@ -353,7 +355,7 @@ Every export of `@ratmath/numtheory`. Whole-number arguments may be numbers, `Bi
 
 | Export | What it does |
 
-| isqrt(n), iroot(n, k), gcd(a, b), lcm(a, b), egcd(a, b) | Integer roots, gcd and lcm, and Bézout's { g, x, y }. |
+| isqrt(n), iroot(n, k), gcd(a, b), lcm(a, b), egcd(a, b) | Integer roots, gcd and lcm, and Bézout's { g, x, y }. Any whole number in (number, BigInt, numeric string, Core Integer or whole Rational); BigInts out. |
 
 | NumberTheoryError | Thrown for refusals; code is one of "bad-argument", "too-large", "too-hard", "unproven", "unknown-valuation", "not-a-square", "diverges", "singular", "not-on-curve", "budget", "pole", "precision", "unsupported". |
 
@@ -955,9 +957,22 @@ discreteLog(3, 13, 17);  // 4n: 3⁴ = 81 ≡ 13 (mod 17)
 discreteLog(2, 3, 7);    // null: 2 generates only {1, 2, 4}
 ```
 
+### Factorials: Legendre's formula
+
+The multiples of p up to n each give one factor p to n!, the multiples of p2 one more, and so on, so vp​(n!)=⌊n/p⌋+⌊n/p2⌋+⋯, which also equals (n−sp​(n))/(p−1) where sp​(n) is the sum of the base-p digits of n. `factorialValuation(n, b)` takes any b≥2: for b=∏pe the answer is the smallest ⌊vp​(n!)/e⌋, the number of zeros that end n! in base b. It never builds n!.
+
+```js
+factorialValuation(100, 2);     // 97 = 50 + 25 + 12 + 6 + 3 + 1
+factorialValuation(100, 10);    // 24: 100! ends in 24 zeros
+factorialValuation(10n ** 18n, 5);   // 249999999999999998n: a BigInt once it is too large for a plain number
+```
+
 ### Try it
 
 ```js
+// Legendre's formula, and the digit-sum form (n − s_p(n))/(p − 1)
+PRINT("v₂(100!) =", factorialValuation(100, 2), " =", (100 - [...(100).toString(2)].filter((d) => d === "1").length) / 1);
+PRINT("zeros at the end of 1000! in base 10 and base 12:", factorialValuation(1000, 10), factorialValuation(1000, 12));
 // Sunzi: a number leaves 2 when divided by 3, 3 by 5, 2 by 7
 PRINT(crt([2, 3, 2], [3, 5, 7]));
 // the number of solutions of x² ≡ 1 (mod m) is 2^k, more for powers of 2
