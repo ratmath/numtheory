@@ -323,7 +323,7 @@ export function compose(f: FormLike, g: FormLike): Form;
 export function principalForm(D: Whole): Form;
 export function inverseForm(f: FormLike): Form;
 export function reducedForms(D: Whole): Form[];
-export interface ClassGroup {
+export interface FormClassGroup {
   D: bigint;
   h: bigint;
   forms: Form[];
@@ -335,7 +335,7 @@ export interface ClassGroup {
   /** Invariant factors: the group is the product of cyclic groups of these orders. */
   structure: bigint[];
 }
-export function classGroup(D: Whole): ClassGroup;
+export function classGroup(D: Whole): FormClassGroup;
 export function classNumber(D: Whole): bigint;
 export function representations(f: FormLike, n: Whole): Array<[bigint, bigint]>;
 export function represent(f: FormLike, n: Whole): [bigint, bigint] | null;

@@ -5,6 +5,9 @@
 Phases 5, 6 and 7 of the roadmap: number fields and L-functions. The plan is
 now fully built.
 
+- Types: `classGroup(D)` (binary quadratic forms) now returns
+  `FormClassGroup`. It was an interface named `ClassGroup`, which clashed with
+  the ideal `ClassGroup` class, so TypeScript rejected `index.d.ts`.
 - `ringOfIntegers(K)` (Round 2): `basis`, `discriminant`, `index`,
   `coordinates`, `contains`, `traceMatrix`; also `integralBasis` and
   `fieldDiscriminant`. A field is a `NumberField` from algebraic (re-exported)
