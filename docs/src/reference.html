@@ -73,6 +73,7 @@
 <tr><td><code>hasPrimitiveRoot(n), primitiveRootMod(n), order(a, n)</code></td><td>Gauss's condition; the least primitive root or null; the multiplicative order.</td></tr>
 <tr><td><code>discreteLog(g, h, n)</code></td><td>The least x with \(g^x \equiv h\), or null (baby-step giant-step).</td></tr>
 <tr><td><code>valuation(n, p)</code></td><td>\(v_p(n)\); Infinity for 0.</td></tr>
+<tr><td><code>factorialValuation(n, b)</code></td><td>The exponent of \(b\) in \(n!\): Legendre's formula \(\sum_k \lfloor n/p^k\rfloor\) for a prime; the largest \(k\) with \(b^k \mid n!\) for any \(b \ge 2\) (trailing zeros in base \(b\)). A BigInt when too large for a plain number.</td></tr>
 </table></div>
 <h2>Reciprocity</h2>
 <div class="tablewrap"><table class="ref">

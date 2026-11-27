@@ -48,7 +48,15 @@ primitiveRootMod(8);     // null: (Z/8)ˣ is {1, 3, 5, 7}, every element squares
 order(10, 13);           // 6n: 1/13 has a period of 6 decimal digits
 discreteLog(3, 13, 17);  // 4n: 3⁴ = 81 ≡ 13 (mod 17)
 discreteLog(2, 3, 7);    // null: 2 generates only {1, 2, 4}</code></pre>
+<h2>Factorials: Legendre's formula</h2>
+<p>The multiples of \(p\) up to \(n\) each give one factor \(p\) to \(n!\), the multiples of \(p^2\) one more, and so on, so \(v_p(n!) = \lfloor n/p\rfloor + \lfloor n/p^2\rfloor + \cdots\), which also equals \((n - s_p(n))/(p - 1)\) where \(s_p(n)\) is the sum of the base-\(p\) digits of \(n\). <code>factorialValuation(n, b)</code> takes any \(b \ge 2\): for \(b = \prod p^{e}\) the answer is the smallest \(\lfloor v_p(n!)/e\rfloor\), the number of zeros that end \(n!\) in base \(b\). It never builds \(n!\).</p>
+<pre><code>factorialValuation(100, 2);     // 97 = 50 + 25 + 12 + 6 + 3 + 1
+factorialValuation(100, 10);    // 24: 100! ends in 24 zeros
+factorialValuation(10n ** 18n, 5);   // 249999999999999998n: a BigInt once it is too large for a plain number</code></pre>
 <template data-runbox>
+// Legendre's formula, and the digit-sum form (n − s_p(n))/(p − 1)
+PRINT("v₂(100!) =", factorialValuation(100, 2), " =", (100 - [...(100).toString(2)].filter((d) =&gt; d === "1").length) / 1);
+PRINT("zeros at the end of 1000! in base 10 and base 12:", factorialValuation(1000, 10), factorialValuation(1000, 12));
 // Sunzi: a number leaves 2 when divided by 3, 3 by 5, 2 by 7
 PRINT(crt([2, 3, 2], [3, 5, 7]));
 // the number of solutions of x² ≡ 1 (mod m) is 2^k, more for powers of 2

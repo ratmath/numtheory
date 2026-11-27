@@ -250,6 +250,8 @@ export function primitiveRootMod(n: Whole): bigint | null;
 export function order(a: Whole, n: Whole): bigint;
 export function discreteLog(g: Whole, h: Whole, n: Whole): bigint | null;
 export function valuation(n: Whole, p: Whole): number;
+/** The exponent of b in n!: Legendre's formula for a prime, the largest k with bᵏ | n! for any b ≥ 2. */
+export function factorialValuation(n: Whole, b: Whole): number | bigint;
 
 // ---- reciprocity
 

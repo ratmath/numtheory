@@ -2,6 +2,8 @@
 
 ## 0.3.0 (unreleased)
 
+- `factorialValuation(n, b)`: Legendre's formula for the exponent of a prime
+  in n!, and the largest power of any b ≥ 2 dividing n!, without building n!.
 - `egcd`, `isqrt` and `iroot` took BigInts only (`egcd(252, 198)` threw
   "Invalid mix of BigInt and other type"), and `gcd`/`lcm` gave back numbers
   for numbers. All five now read any whole number (number, BigInt, numeric

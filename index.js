@@ -31,7 +31,7 @@ export {
 } from "./src/arith.js";
 export {
   solveLinear, crt, solveLinearSystem, polyMod, hensel, rootsMod, hasPrimitiveRoot, primitiveRootMod, order,
-  discreteLog, discreteLogMod, valuation,
+  discreteLog, discreteLogMod, valuation, factorialValuation,
 } from "./src/congruence.js";
 export { jacobi, legendre, kronecker, jacobiSteps, eulerCriterion, gaussLemma, quadraticResidues, sqrtsMod, sqrtMod } from "./src/quadratic.js";
 export {
