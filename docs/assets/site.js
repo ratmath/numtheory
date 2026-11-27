@@ -1,8 +1,8 @@
 // Shared page furniture for the numtheory docs: the contents column, the theme
 // switch and the code boxes. Add each topic page to PAGES as it is written.
 
-import * as A from "./numtheory.js?v=beddfbdb56";
-import { mountRunboxes } from "./runbox.js?v=beddfbdb56";
+import * as A from "./numtheory.js?v=9f773a4fdd";
+import { mountRunboxes } from "./runbox.js?v=9f773a4fdd";
 
 export { A };
 
@@ -12,6 +12,7 @@ export const PAGES = [
   { href: "explore.html", title: "Explore" },
   { group: "Primes" },
   { href: "primes.html", title: "Primes and certificates", blurb: "Sieves, π(x), Baillie–PSW, and certificates checked by an independent verifier" },
+  { href: "prime-counting.html", title: "Counting primes", blurb: "π(10¹²) in a second: Legendre's φ and Meissel's formula" },
   { href: "factoring.html", title: "Factoring", blurb: "Trial division, Pollard's rho and p − 1, with proven prime factors" },
   { href: "ecm.html", title: "The elliptic curve method", blurb: "Lenstra's method: many groups instead of one, and the factors of F₇" },
   { href: "elliptic-certificates.html", title: "Elliptic curve certificates", blurb: "Atkin–Morain proofs for primes that n − 1 cannot certify, checked independently" },
@@ -28,6 +29,14 @@ export const PAGES = [
   { group: "Elliptic curves" },
   { href: "elliptic-curves.html", title: "Elliptic curves", blurb: "The group law over Q, torsion, minimal models, reduction, and proven height bounds" },
   { href: "point-counting.html", title: "Counting points", blurb: "Curves over F_p: Hasse's bound, baby steps and giant steps, Schoof's algorithm" },
+  { group: "Number fields" },
+  { href: "number-fields.html", title: "Rings of integers", blurb: "Integral bases by the Round 2 algorithm, discriminants, the index" },
+  { href: "prime-ideals.html", title: "Prime ideals", blurb: "How primes split, ramify or stay inert; ideal arithmetic and unique factorisation" },
+  { href: "class-groups.html", title: "Class groups", blurb: "Class numbers and group structure, proven without the Riemann hypothesis" },
+  { href: "units.html", title: "Units", blurb: "Dirichlet's theorem, roots of unity, fundamental units and the regulator" },
+  { group: "L-functions" },
+  { href: "characters.html", title: "Dirichlet characters", blurb: "Conrey's numbering, exact values, conductors, Gauss sums, orthogonality" },
+  { href: "l-values.html", title: "Zeta and L values", blurb: "Exact values from Bernoulli numbers, proven enclosures in the whole plane" },
   { group: "p-adic numbers" },
   { href: "padic.html", title: "p-adic numbers", blurb: "Lazy exact digits, valuations, square and Hensel roots, exp and log" },
 ];
@@ -86,7 +95,7 @@ function chrome() {
     (group ?? sel).append(h("option", { value: p.href, selected: p.href === here }, p.title));
   }
   aside.append(
-    h("header", { class: "brand" }, h("a", { href: "index.html" }, h("div", { class: "mark" }, "RatMath ", h("span", {}, "numtheory"))), h("small", {}, "Primes, congruences and equations in integers")),
+    h("header", { class: "brand" }, h("a", { href: "index.html" }, h("div", { class: "mark" }, "RatMath ", h("span", {}, "numtheory"))), h("small", {}, "Primes, equations, number fields and L-functions")),
     sel, nav, theme(),
   );
 }

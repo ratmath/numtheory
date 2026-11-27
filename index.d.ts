@@ -1,14 +1,14 @@
 // Type declarations for @ratmath/numtheory.
 
-import type { Rational } from "@ratmath/core";
-import type { AlgebraicReal, NumberFieldElement } from "@ratmath/algebraic";
+import type { Rational, RationalInterval } from "@ratmath/core";
+import type { AlgebraicReal, NumberField, NumberFieldElement } from "@ratmath/algebraic";
 
 /** A whole number: a JavaScript integer, a BigInt, decimal text, or a Rational with denominator 1. Non-whole JS numbers are refused. */
 export type Whole = bigint | number | string | Rational;
 /** An exact rational: a whole number, fraction text ("3/7", "0.25") or a Rational. */
 export type RationalLike = bigint | number | string | Rational;
 
-/** Thrown for refusals; `code` says why ("bad-argument", "too-large", "unproven", "unknown-valuation", "not-a-square", "diverges", "too-hard", "singular", "not-on-curve", "no-inverse"). */
+/** Thrown for refusals; `code` says why ("bad-argument", "too-large", "unproven", "unknown-valuation", "not-a-square", "diverges", "too-hard", "singular", "not-on-curve", "no-inverse", "budget", "pole", "precision", "unsupported"). */
 export class NumberTheoryError extends Error {
   code: string;
 }
@@ -392,7 +392,252 @@ export function fromQuadratic(p: bigint, q: bigint, d: bigint, r: bigint): Algeb
 
 export { factorInteger, modPow, modInverse, multiplicativeOrder, primitiveRoot, lll, recognize, discreteLogMod } from "@ratmath/algebraic";
 
-// ---- still to come
+// ---- number fields: rings of integers, primes and ideals
+
+export { NumberField, NumberFieldElement } from "@ratmath/algebraic";
+/** A field: a NumberField, or the coefficients (constant first) of an irreducible polynomial. */
+export type FieldLike = NumberField | Order | Array<bigint | number | string | Rational | [bigint, bigint]>;
+/** An element of the field: a NumberFieldElement, a whole number or a Rational. */
+export type ElementLike = NumberFieldElement | bigint | number | Rational;
+
+export interface Round2Step {
+  p: bigint;
+  /** The exponent of p in the discriminant of the defining polynomial. */
+  exponent: number;
+  /** The order grew by index p^indexExponent at p. */
+  indexExponent: number;
+  rounds: number;
+  note: string;
+}
+export class Order {
+  readonly field: NumberField;
+  readonly degree: number;
+  /** The field discriminant. */
+  readonly discriminant: bigint;
+  /** [O_K : Z[θ]] for the integral generator θ = scale·α used inside. */
+  readonly index: bigint;
+  readonly scale: bigint;
+  /** The discriminant of the minimal polynomial of θ. */
+  readonly polyDiscriminant: bigint;
+  /** [r₁, r₂]. */
+  readonly signature: [number, number];
+  /** What the Round 2 algorithm did at each prime whose square divides the polynomial discriminant. */
+  readonly steps: Round2Step[];
+  /** The integral basis, ω₁ = 1 first. */
+  readonly basis: NumberFieldElement[];
+  readonly traceMatrix: bigint[][];
+  readonly ramifiedPrimes: bigint[];
+  readonly unitIdeal: Ideal;
+  coordinates(x: ElementLike): Rational[];
+  element(coordinates: Array<bigint | number | Rational>): NumberFieldElement;
+  contains(x: ElementLike): boolean;
+  primesAbove(p: Whole): PrimeIdeal[];
+  describePrime(p: Whole): { p: bigint; kind: "inert" | "splits" | "splits completely" | "ramified" | "totally ramified"; primes: PrimeIdeal[]; text: string };
+  ideal(...generators: Array<ElementLike | Ideal | PrimeIdeal>): Ideal;
+  toString(): string;
+}
+export class PrimeIdeal {
+  readonly order: Order;
+  /** The rational prime below. */
+  readonly p: bigint;
+  /** The ramification index. */
+  readonly e: number;
+  /** The residue degree. */
+  readonly f: number;
+  readonly norm: bigint;
+  /** p and a second generator (p alone when the prime is inert). */
+  readonly generators: NumberFieldElement[];
+  /** The exponent of this prime in an element, an ideal or a prime ideal. */
+  valuation(x: ElementLike | Ideal | PrimeIdeal): number;
+  toIdeal(): Ideal;
+  equals(other: PrimeIdeal): boolean;
+  toString(): string;
+}
+export class Ideal {
+  readonly order: Order;
+  readonly norm: Rational;
+  readonly isIntegral: boolean;
+  readonly isOne: boolean;
+  readonly isPrime: boolean;
+  /** A Z-basis. */
+  readonly basis: NumberFieldElement[];
+  /** The smallest positive rational in the ideal. */
+  readonly minimum: Rational;
+  mul(other: Ideal | PrimeIdeal | ElementLike): Ideal;
+  add(other: Ideal | PrimeIdeal | ElementLike): Ideal;
+  div(other: Ideal | PrimeIdeal | ElementLike): Ideal;
+  pow(k: number | bigint): Ideal;
+  inverse(): Ideal;
+  contains(x: ElementLike): boolean;
+  equals(other: Ideal | PrimeIdeal | ElementLike): boolean;
+  factor(): Array<{ prime: PrimeIdeal; exponent: number }>;
+  toString(): string;
+}
+/** The ring of integers by the Round 2 algorithm; cached on the field. */
+export function ringOfIntegers(K: FieldLike): Order;
+export function integralBasis(K: FieldLike): NumberFieldElement[];
+export function fieldDiscriminant(K: FieldLike): bigint;
+export function primeDecomposition(K: FieldLike, p: Whole): PrimeIdeal[];
+
+// ---- class groups and unit groups
+
+export interface FieldOptions {
+  /** false: skip the certification (the class number is then only known to divide the one shown). Default true. */
+  certify?: boolean;
+  /** The largest Minkowski bound accepted (default 2000). */
+  maxBound?: number;
+  /** The largest prime the saturation step goes to (default 20000). */
+  maxIndexPrime?: number;
+  /** How many elements may be tested for relations (default 400000). */
+  budget?: number;
+  /** How many times to gather more relations when certification fails (default 6). */
+  rounds?: number;
+}
+export interface FieldCertificate {
+  method: string;
+  minkowskiBound?: bigint;
+  relations?: number;
+  /** R ≥ this (Friedman). */
+  regulatorLowerBound?: number;
+  /** The index of the units found in all units is at most this. */
+  unitIndexBound?: number;
+  /** The primes dividing the class number found, each given the full saturation test. */
+  classNumberPrimes?: number[];
+  /** How many primes passed a saturation test. */
+  primesChecked?: number;
+  /** How many relation elements were found as ℓ-th roots named by a failed saturation test. */
+  rootsTaken?: number;
+  narrowClassNumber?: bigint;
+  formClassNumber?: bigint;
+  note?: string;
+}
+export class ClassGroup {
+  readonly field: NumberField;
+  readonly order: Order;
+  /** The class number. */
+  readonly h: bigint;
+  /** Invariant factors d₁ | d₂ | …; empty for the trivial group. */
+  readonly structure: bigint[];
+  /** One ideal of small norm per cyclic factor. */
+  readonly generators: Ideal[];
+  readonly proven: boolean;
+  readonly certificate: FieldCertificate;
+  readonly minkowskiBound: bigint;
+  readonly factorBase: PrimeIdeal[];
+  /** Exponents on the generators, each reduced modulo its invariant factor. */
+  classOf(I: Ideal | PrimeIdeal | ElementLike): bigint[];
+  isPrincipal(I: Ideal | PrimeIdeal | ElementLike): { principal: boolean; generator: NumberFieldElement | null };
+  orderOf(I: Ideal | PrimeIdeal | ElementLike): bigint;
+  toString(): string;
+}
+export class UnitGroup {
+  readonly field: NumberField;
+  readonly order: Order;
+  /** r₁ + r₂ − 1. */
+  readonly rank: number;
+  readonly torsionOrder: number;
+  readonly rootOfUnity: NumberFieldElement;
+  readonly fundamentalUnits: NumberFieldElement[];
+  /** To double precision. */
+  readonly regulator: number;
+  readonly proven: boolean;
+  readonly certificate: FieldCertificate;
+  isUnit(x: ElementLike): boolean;
+  /** u = ζ^torsion · ∏ εᵢ^exponents[i]. */
+  exponents(u: ElementLike): { torsion: number; exponents: bigint[] };
+  toString(): string;
+}
+export function idealClassGroup(K: FieldLike, options?: FieldOptions): ClassGroup;
+export function unitGroup(K: FieldLike, options?: FieldOptions): UnitGroup;
+export function fieldClassNumber(K: FieldLike, options?: FieldOptions): bigint;
+export function regulator(K: FieldLike, options?: FieldOptions): number;
+/** ⌊the Minkowski bound⌋. */
+export function minkowskiBound(K: FieldLike): bigint;
+/** The ideal a·Z + ((−b + √D)/2)·Z of the quadratic field of discriminant D for a form (a, b, c). */
+export function formToIdeal(f: Form | [Whole, Whole, Whole], K?: FieldLike): Ideal;
+
+// ---- counting primes
+
+/** π(x) by Meissel's formula with its pieces: π = φ + a − 1 − P2. For x ≤ 10¹². */
+export function meissel(x: Whole): { pi: bigint; y: bigint; a: bigint; phi: bigint; P2: bigint };
+/** Legendre's φ(x, a): the n ≤ x with no prime factor among the first a primes. */
+export function legendrePhi(x: Whole, a: Whole): bigint;
+
+// ---- Dirichlet characters
+
+export class DirichletCharacter {
+  constructor(q: Whole, m: Whole);
+  readonly modulus: number;
+  /** The Conrey number m of χ_q(m, ·). */
+  readonly number: number;
+  readonly order: number;
+  readonly conductor: number;
+  readonly isPrimitive: boolean;
+  readonly isPrincipal: boolean;
+  readonly isReal: boolean;
+  readonly isEven: boolean;
+  readonly parity: "even" | "odd";
+  /** t with χ(n) = exp(2πi·t), in [0, 1); null when χ(n) = 0. */
+  exponent(n: Whole): Rational | null;
+  /** χ(n) in doubles. */
+  value(n: Whole): { re: number; im: number };
+  /** χ(n) for a real character: 0n, 1n or −1n. */
+  at(n: Whole): bigint;
+  exponents(): Array<Rational | null>;
+  primitive(): DirichletCharacter;
+  mul(other: DirichletCharacter): DirichletCharacter;
+  pow(k: number | bigint): DirichletCharacter;
+  conjugate(): DirichletCharacter;
+  induce(modulus: Whole): DirichletCharacter;
+  gaussSum(): { re: number; im: number };
+  equals(other: DirichletCharacter): boolean;
+  toString(): string;
+}
+export function dirichletCharacter(q: Whole, m?: Whole): DirichletCharacter;
+export interface DirichletGroup {
+  modulus: number;
+  order: number;
+  characters: DirichletCharacter[];
+  principal: DirichletCharacter;
+  readonly primitive: DirichletCharacter[];
+  readonly real: DirichletCharacter[];
+  /** Orders of cyclic factors. */
+  structure: number[];
+  /** Σ_χ χ(a)·conj(χ(b)). */
+  orthogonality(a: Whole, b: Whole): { re: number; im: number };
+  toString(): string;
+}
+export function dirichletGroup(q: Whole): DirichletGroup;
+/** The Kronecker symbol (D/·) as a character mod |D|. */
+export function kroneckerCharacter(D: Whole): DirichletCharacter;
+
+// ---- zeta and L values
+
+export function bernoulli(n: Whole): Rational;
+export function bernoulliPolynomial(n: Whole, x: RationalLike): Rational;
+export function generalizedBernoulli(k: Whole, chi: DirichletCharacter): Rational | NumberFieldElement;
+/** A Rational for n ≤ 0; { coefficient, piPower } standing for coefficient·π^n for even n > 0. */
+export function zetaExact(n: Whole): Rational | { coefficient: Rational; piPower: number; toString(): string };
+/** L(n, χ) at an integer n ≤ 0: a Rational for a real character, else an element of a cyclotomic field. */
+export function lValueExact(chi: DirichletCharacter, n: Whole): Rational | NumberFieldElement;
+/** A point of the plane: [σ, t] or { re, im }, given exactly. */
+export type PlanePoint = [RationalLike, RationalLike] | { re: RationalLike; im?: RationalLike };
+export interface PlaneEnclosure {
+  re: RationalInterval;
+  im: RationalInterval;
+}
+export interface EnclosureOptions {
+  /** The enclosure is narrower than 2^−bits (default 64). */
+  bits?: number;
+}
+export function zetaValue(s: RationalLike, options?: EnclosureOptions): RationalInterval;
+export function zetaValue(s: PlanePoint, options?: EnclosureOptions): PlaneEnclosure;
+export function hurwitzZeta(s: RationalLike, a: RationalLike, options?: EnclosureOptions): RationalInterval;
+export function hurwitzZeta(s: PlanePoint, a: RationalLike, options?: EnclosureOptions): PlaneEnclosure;
+/** A RationalInterval when s is real and χ is real; { re, im } otherwise. */
+export function lValue(chi: DirichletCharacter, s: RationalLike | PlanePoint, options?: EnclosureOptions): RationalInterval | PlaneEnclosure;
+
+// ---- the plan
 
 export interface PlannedPhase {
   phase: number;
@@ -400,5 +645,5 @@ export interface PlannedPhase {
   /** Rough size in source lines, as text. */
   estimate: string;
 }
-/** The phases not built yet (4 to 7). */
+/** Empty: every planned phase is built. */
 export const plan: readonly PlannedPhase[];

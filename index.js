@@ -7,7 +7,11 @@
 // Phase 3: p-adic numbers.
 // Phase 4: elliptic curves over Q and F_p, the elliptic curve method of
 // factoring, and elliptic curve primality certificates.
-// `plan` lists what is still to come.
+// Phase 5: rings of integers of number fields (integral bases, discriminants)
+// and the factorisation of primes and ideals into prime ideals.
+// Phase 6: ideal class groups and unit groups, certified.
+// Phase 7: π(x) by Meissel's formula, Dirichlet characters, and exact and
+// enclosed values of zeta and L functions.
 
 export { NumberTheoryError, isqrt, iroot, gcd, lcm, egcd } from "./src/int.js";
 export {
@@ -42,4 +46,11 @@ export { Padic, padic, henselRoot, teichmuller, expansion, padicValuation, padic
 export { continuedFraction, convergents, fromContinuedFraction, periodicContinuedFraction, pell, fundamentalUnit, fromQuadratic } from "./src/cf.js";
 // the modular kernel stays in algebraic, which needs it for finite fields (roadmap 4.3)
 export { factorInteger, modPow, modInverse, multiplicativeOrder, primitiveRoot, lll, recognize } from "@ratmath/algebraic";
+export { Order, PrimeIdeal, Ideal, ringOfIntegers, integralBasis, fieldDiscriminant, primeDecomposition } from "./src/order.js";
+export { ClassGroup, UnitGroup, idealClassGroup, unitGroup, fieldClassNumber, regulator, minkowskiBound, formToIdeal } from "./src/classgroup.js";
+export { meissel, legendrePhi } from "./src/primecount.js";
+export { DirichletCharacter, dirichletCharacter, dirichletGroup, kroneckerCharacter } from "./src/characters.js";
+export { bernoulli, bernoulliPolynomial, generalizedBernoulli, zetaExact, lValueExact, zetaValue, hurwitzZeta, lValue } from "./src/lfunctions.js";
+// number fields come from algebraic; re-exported so that this package is enough for the pages on them
+export { NumberField, NumberFieldElement } from "@ratmath/algebraic";
 export { plan } from "./src/plan.js";

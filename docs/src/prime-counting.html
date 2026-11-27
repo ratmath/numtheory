@@ -1,0 +1,66 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Counting primes · RatMath Number Theory</title>
+<meta name="description" content="Exact values of π(x) up to 10¹² in @ratmath/numtheory by Meissel&#x27;s formula: Legendre&#x27;s φ, the P₂ correction, and why it is so much faster than a sieve.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&family=Space+Grotesk:wght@500;600;700&display=swap">
+<link rel="stylesheet" href="assets/style.css">
+<script type="module" src="assets/site.js"></script>
+</head>
+<body>
+<div class="shell">
+<aside></aside>
+<main>
+<article>
+<div class="eyebrow">Primes</div>
+<h1>Counting primes</h1>
+<p class="lede">How many primes are there up to a trillion? Listing them would take 37 billion numbers. Counting them without listing them takes about a second.</p>
+
+<h2>Legendre's formula</h2>
+<p>Let \(\varphi(x, a)\) be the number of \(n \le x\) not divisible by any of the first \(a\) primes. Removing the multiples of the \(a\)-th prime from the numbers counted by \(\varphi(x, a-1)\) gives the recurrence</p>
+\[ \varphi(x, a) = \varphi(x, a - 1) - \varphi\!\left(\left\lfloor \tfrac{x}{p_a} \right\rfloor, a - 1\right), \qquad \varphi(x, 0) = \lfloor x \rfloor, \]
+<p>which is inclusion and exclusion, organised. If \(a = \pi(\sqrt x)\), the numbers counted are 1 and the primes between \(\sqrt x\) and \(x\), so \(\pi(x) = \varphi(x, a) + a - 1\).</p>
+<pre><code>import { legendrePhi, primePi, meissel } from "@ratmath/numtheory";
+
+legendrePhi(100, 3);     // 26n: the n ≤ 100 coprime to 30
+legendrePhi(100, 4);     // 22n: 1 and the 21 primes from 11 to 97
+22n + 4n - 1n;           // 25n = π(100)</code></pre>
+
+<h2>Meissel's improvement</h2>
+<p>The recurrence has too many terms when \(a\) is as large as \(\pi(\sqrt x)\). Meissel took \(a = \pi(\sqrt[3]{x})\) instead. Then \(\varphi(x, a)\) counts 1, the primes between \(\sqrt[3]{x}\) and \(x\), and the products of exactly two such primes; no product of three fits below \(x\). Hence</p>
+\[ \pi(x) = \varphi(x, a) + a - 1 - P_2(x, a), \qquad P_2(x, a) = \sum_{\sqrt[3]{x} < p \le \sqrt{x}} \Big( \pi\!\left(\tfrac{x}{p}\right) - \pi(p) + 1 \Big). \]
+<p>The sum needs \(\pi\) only up to \(x^{2/3}\), which a sieve provides.</p>
+<pre><code>meissel(1000);
+// { pi: 168n, y: 10n, a: 4n, phi: 228n, P2: 63n }:   228 + 4 − 1 − 63 = 168
+meissel(10n ** 6n);
+// { pi: 78498n, y: 100n, a: 25n, phi: 120760n, P2: 42286n }
+
+primePi(10n ** 9n);      // 50847534n
+primePi(10n ** 12n);     // 37607912018n, in about a second</code></pre>
+<p><code>primePi</code> sieves below \(10^7\) and uses this formula above, up to \(10^{12}\).</p>
+
+<h2>What makes it fast</h2>
+<ul>
+<li><strong>A table for the first primes.</strong> \(\varphi(x, 6)\) is periodic in \(x\) with period \(30030 = 2 \cdot 3 \cdots 13\), so it is a table lookup, and the recurrence starts at the seventh prime.</li>
+<li><strong>Stopping early.</strong> When \(x < p_a^2\), the numbers counted by \(\varphi(x, a)\) are 1 and primes, so \(\varphi(x, a) = \pi(x) - a + 1\), another lookup.</li>
+<li><strong>A compact sieve.</strong> The sieve up to \(x^{2/3}\) keeps one bit for each odd number and a running count for every 32 bits, so \(\pi(m)\) at any \(m\) costs one addition and one bit count. At \(x = 10^{12}\) that is 6 megabytes.</li>
+</ul>
+<p>Lehmer, and later Lagarias, Miller and Odlyzko, pushed the same idea further (more correction terms, and a sieve in place of the recurrence); the record computations of \(\pi(10^{27})\) and beyond descend from it. Compare the result with the estimates: \(\pi(10^{12}) = 37607912018\), while \(x/\ln x\) gives \(3.62 \times 10^{10}\) and the logarithmic integral \(\operatorname{li}(x)\) gives \(37607950281\), off by 38263.</p>
+<template data-runbox>
+// π(x) at powers of ten, with the pieces of Meissel's formula and the prime number theorem's estimate
+for (let k = 2; k <= 11; k++) {
+  const x = 10n ** BigInt(k);
+  const m = meissel(x);
+  const est = Number(x) / Math.log(Number(x));
+  PRINT(`10^${k}`.padEnd(6), `π = ${m.pi}`.padEnd(18), `a = ${m.a}`.padEnd(9), `φ = ${m.phi}`.padEnd(18), `P₂ = ${m.P2}`.padEnd(18), `π / (x / ln x) = ${(Number(m.pi) / est).toFixed(4)}`);
+}
+</template>
+</article>
+</main>
+</div>
+</body>
+</html>

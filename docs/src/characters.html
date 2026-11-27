@@ -1,0 +1,89 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Dirichlet characters · RatMath Number Theory</title>
+<meta name="description" content="Dirichlet characters in @ratmath/numtheory: Conrey&#x27;s numbering, exact values as roots of unity, orders, conductors, primitive characters, Gauss sums, orthogonality, and the Kronecker symbol.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&family=Space+Grotesk:wght@500;600;700&display=swap">
+<link rel="stylesheet" href="assets/style.css">
+<script type="module" src="assets/site.js"></script>
+</head>
+<body>
+<div class="shell">
+<aside></aside>
+<main>
+<article>
+<div class="eyebrow">L-functions</div>
+<h1>Dirichlet characters</h1>
+<p class="lede">A Dirichlet character is a pattern of roots of unity that repeats modulo \(q\) and respects multiplication. Characters pick out residue classes the way sines and cosines pick out frequencies, which is how Dirichlet proved that every progression \(a, a + q, a + 2q, \dots\) with \(\gcd(a, q) = 1\) contains infinitely many primes.</p>
+
+<h2>Definition and numbering</h2>
+<p>A character modulo \(q\) is a function \(\chi\) on the integers with \(\chi(mn) = \chi(m)\chi(n)\), \(\chi(n + q) = \chi(n)\), and \(\chi(n) = 0\) exactly when \(\gcd(n, q) > 1\). Its nonzero values are roots of unity. There are \(\varphi(q)\) characters modulo \(q\), and under multiplication they form a group isomorphic to the units modulo \(q\).</p>
+<p>That isomorphism can be made explicit, and Conrey's numbering (the one used by the LMFDB) does so: for each \(m\) coprime to \(q\) there is a character \(\chi_q(m, \cdot)\), with \(\chi_q(m, n) = \chi_q(n, m)\). For an odd prime power \(p^e\) with least primitive root \(g\),</p>
+\[ \chi_{p^e}(g^a, g^b) = \exp\!\left( \frac{2\pi i\, ab}{\varphi(p^e)} \right), \]
+<p>with a similar rule for powers of 2 using \(\pm 5^a\), and a product over the prime powers of \(q\).</p>
+<pre><code>import { dirichletCharacter, dirichletGroup } from "@ratmath/numtheory";
+
+const chi = dirichletCharacter(7, 3);
+String(chi);            // "χ_7(3, ·)"
+chi.order;              // 6
+chi.exponent(2);        // 1/3: χ(2) = exp(2πi/3), exactly
+chi.exponents();        // [null, 0, 1/3, 1/6, 2/3, 5/6, 1/2] for n = 0, …, 6
+chi.value(2);           // { re: -0.5, im: 0.866… }
+chi.parity;             // "odd": χ(−1) = −1</code></pre>
+<p>Values are kept exactly as fractions \(t\) with \(\chi(n) = e^{2\pi i t}\); <code>value</code> gives the complex number in doubles, and <code>at(n)</code> gives \(0, 1, -1\) as BigInts for a real character.</p>
+
+<h2>The group of characters</h2>
+<pre><code>const G = dirichletGroup(15);
+G.order;                 // 8
+G.structure;             // [2, 4]: the group is Z/2 × Z/4, like the units mod 15
+G.characters.map((c) =&gt; [c.number, c.order, c.conductor, c.parity]);
+// [1, 1, 1, even] [2, 4, 15, even] [4, 2, 5, even] [7, 4, 5, odd]
+// [8, 4, 15, even] [11, 2, 3, odd] [13, 4, 5, odd] [14, 2, 15, odd]
+
+String(dirichletCharacter(15, 2).mul(dirichletCharacter(15, 2)));    // "χ_15(4, ·)": numbers multiply
+String(dirichletCharacter(3, 2).mul(dirichletCharacter(5, 2)));      // "χ_15(2, ·)": moduli combine
+String(dirichletCharacter(15, 2).conjugate());                       // "χ_15(8, ·)"</code></pre>
+<p>The <strong>orthogonality relations</strong> are what make characters useful: summing over all characters isolates one residue class.</p>
+\[ \sum_{\chi \bmod q} \chi(a)\,\overline{\chi(b)} = \begin{cases} \varphi(q) & a \equiv b \pmod q,\ \gcd(a, q) = 1 \\ 0 & \text{otherwise.} \end{cases} \]
+<pre><code>G.orthogonality(2, 2);     // { re: 8, im: 0 }
+G.orthogonality(2, 7);     // { re: 0, im: 0 }</code></pre>
+
+<h2>Conductors and primitive characters</h2>
+<p>A character modulo 15 may really come from a smaller modulus: \(\chi_{15}(11, \cdot)\) only depends on \(n\) modulo 3, wherever it is not zero. The smallest such modulus is the <strong>conductor</strong>, and a character is <strong>primitive</strong> when its conductor is its modulus. Every character is induced by exactly one primitive character.</p>
+<pre><code>const c = dirichletCharacter(15, 11);
+c.conductor;               // 3
+String(c.primitive());     // "χ_3(2, ·)"
+G.primitive.map((x) =&gt; x.number);                 // [2, 8, 14]
+String(dirichletCharacter(5, 2).induce(15));      // "χ_15(7, ·)"</code></pre>
+<p>For a primitive character the <strong>Gauss sum</strong> \(\tau(\chi) = \sum_a \chi(a) e^{2\pi i a/q}\) has absolute value exactly \(\sqrt q\); it is the constant in the functional equation of the L-function.</p>
+
+<h2>Real characters and the Kronecker symbol</h2>
+<p>The characters with values in \(\{0, 1, -1\}\) are the quadratic ones. For a discriminant \(D\), the <a href="reciprocity.html">Kronecker symbol</a> \(n \mapsto \left(\frac{D}{n}\right)\) is a character modulo \(|D|\), primitive exactly when \(D\) is a fundamental discriminant. It records how primes split in \(\mathbb{Q}(\sqrt D)\): \(p\) splits when the symbol is \(1\), is inert when it is \(-1\), and ramifies when it is \(0\).</p>
+<pre><code>const k = kroneckerCharacter(-23);
+String(k);                               // "χ_23(22, ·)"
+[1, 2, 3, 4, 5, 6, 7].map((n) =&gt; k.at(n));   // [1n, 1n, 1n, 1n, -1n, 1n, -1n]
+k.isPrimitive;                           // true
+k.gaussSum();                            // { re: 0, im: 4.7958… }: i·√23
+String(kroneckerCharacter(-4));          // "χ_4(3, ·)"
+String(kroneckerCharacter(5));           // "χ_5(4, ·)"</code></pre>
+<p>What characters are for: the L-functions \(L(s, \chi) = \sum \chi(n) n^{-s}\), in <a href="l-values.html">Zeta and L values</a>.</p>
+<template data-runbox>
+// the character table mod 12: rows are the characters χ_12(m, ·), columns the units n
+const G = dirichletGroup(12);
+const units = G.characters.map((c) => c.number);
+PRINT("m \\ n".padEnd(8), units.map((n) => String(n).padStart(4)).join(""), "   order  conductor");
+for (const c of G.characters) {
+  PRINT(String(c.number).padEnd(8), units.map((n) => String(c.at(n)).padStart(4)).join(""), `   ${c.order}      ${c.conductor}`);
+}
+PRINT("");
+PRINT("row sums:", G.characters.map((c) => units.reduce((s, n) => s + c.at(n), 0n)).join(" "), "  (only the principal character does not sum to zero)");
+</template>
+</article>
+</main>
+</div>
+</body>
+</html>

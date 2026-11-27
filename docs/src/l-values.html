@@ -1,0 +1,97 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Zeta and L values · RatMath Number Theory</title>
+<meta name="description" content="Values of the Riemann zeta function and of Dirichlet L-functions in @ratmath/numtheory: exact values from Bernoulli numbers, and proven enclosures on the real line and in the complex plane by Euler–Maclaurin summation.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&family=Space+Grotesk:wght@500;600;700&display=swap">
+<link rel="stylesheet" href="assets/style.css">
+<script type="module" src="assets/site.js"></script>
+</head>
+<body>
+<div class="shell">
+<aside></aside>
+<main>
+<article>
+<div class="eyebrow">L-functions</div>
+<h1>Zeta and L values</h1>
+<p class="lede">\(\zeta(2) = \pi^2/6\), \(\zeta(-1) = -1/12\), \(1 - \tfrac13 + \tfrac15 - \cdots = \pi/4\): special values of zeta and L functions carry arithmetic. Some are exact, and those are returned exactly. Everywhere else the value comes as an interval with rational endpoints that provably contains it.</p>
+
+<h2>The functions</h2>
+<p>For a <a href="characters.html">Dirichlet character</a> \(\chi\),</p>
+\[ L(s, \chi) = \sum_{n \ge 1} \frac{\chi(n)}{n^s} = \prod_p \left(1 - \frac{\chi(p)}{p^s}\right)^{-1} \qquad (\operatorname{Re} s > 1), \]
+<p>and the Riemann zeta function is the case of the trivial character. Each extends to the whole complex plane, with a single pole at \(s = 1\) when \(\chi\) is principal and none otherwise.</p>
+
+<h2>Exact values</h2>
+<p>At the non-positive integers the values are rational numbers given by Bernoulli numbers, \(\zeta(-n) = -B_{n+1}/(n+1)\), and at the positive even integers Euler's formula gives a rational multiple of a power of \(\pi\).</p>
+<pre><code>import { bernoulli, zetaExact, lValueExact, kroneckerCharacter, dirichletCharacter } from "@ratmath/numtheory";
+
+[0, 1, 2, 4, 6, 12].map(bernoulli);    // 1, -1/2, 1/6, -1/30, 1/42, -691/2730
+zetaExact(-1);                 // -1/12
+zetaExact(-3);                 // 1/120
+zetaExact(-2);                 // 0: a trivial zero
+String(zetaExact(2));          // "π^2/6"
+String(zetaExact(12));         // "691π^12/638512875"
+zetaExact(12).coefficient;     // 691/638512875</code></pre>
+<p>For a character the same holds with generalised Bernoulli numbers: \(L(1 - k, \chi) = -B_{k,\chi}/k\), where \(B_{k,\chi} = q^{k-1}\sum_{a=1}^{q} \chi(a) B_k(a/q)\). For a real character the value is a Rational; for a complex one it lies in the cyclotomic field of the character's order.</p>
+<pre><code>lValueExact(kroneckerCharacter(-23), 0);     // 3
+lValueExact(kroneckerCharacter(-163), 0);    // 1
+lValueExact(kroneckerCharacter(-4), 0);      // 1/2
+lValueExact(kroneckerCharacter(5), -1);      // -2/5
+String(lValueExact(dirichletCharacter(5, 2), 0));   // "3/5 + (1/5)ζ4": (3 + i)/5</code></pre>
+<p>The first lines are the <strong>class number formula</strong>. For a negative fundamental discriminant \(D\), with \(w\) roots of unity in \(\mathbb{Q}(\sqrt D)\),</p>
+\[ h(D) = \frac{w}{2}\, L(0, \chi_D) = \frac{w\sqrt{|D|}}{2\pi}\, L(1, \chi_D). \]
+<p>So \(L(0, \chi_{-23}) = 3\) is the class number of \(\mathbb{Q}(\sqrt{-23})\), found on the <a href="class-groups.html">Class groups</a> page by entirely different means, and \(L(0, \chi_{-163}) = 1\) is the reason \(e^{\pi\sqrt{163}}\) is so nearly a whole number.</p>
+
+<h2>Enclosures</h2>
+<p>At other points there is no closed form. <code>zetaValue</code> and <code>lValue</code> return a <code>RationalInterval</code> narrower than \(2^{-\text{bits}}\) (64 by default) that contains the true value. The argument is given exactly: a whole number, a fraction as text, or <code>[σ, t]</code> for the point \(\sigma + it\) of the plane, in which case the result is <code>{ re, im }</code>.</p>
+<pre><code>import { zetaValue, lValue, hurwitzZeta } from "@ratmath/numtheory";
+
+const z = zetaValue(3);                 // Apéry's constant
+z.compactedDecimalInterval();           // "1.202056903159594285[38:41]"
+zetaValue(3, { bits: 200 });            // sixty digits
+
+zetaValue("1/2").low.toNumber();        // -1.4603545088095868
+
+const w = zetaValue(["1/2", 14]);       // near the first zero, 1/2 + 14.1347…i
+[w.re.low.toNumber(), w.im.low.toNumber()];     // [0.02224114…, -0.10325812…]
+
+lValue(kroneckerCharacter(-4), 1).compactedDecimalInterval();    // "0.7853981633974483096[1:3]" = π/4
+lValue(kroneckerCharacter(8), 1).low.toNumber();                 // 0.6232252401402305 = ln(1 + √2)/√2
+lValue(dirichletCharacter(7, 3), [2, 5]);                        // { re, im }: a complex character, off the real line</code></pre>
+<p>The last real example is the class number formula for a real quadratic field: \(h \ln \varepsilon = \tfrac{\sqrt D}{2} L(1, \chi_D)\), here with \(h = 1\) and the unit \(\varepsilon = 1 + \sqrt 2\) from the <a href="units.html">Units</a> page.</p>
+
+<h2>How the enclosures are proved</h2>
+<p>Every L-function is a combination of Hurwitz zeta functions \(\zeta(s, a) = \sum_{n \ge 0} (n + a)^{-s}\):</p>
+\[ L(s, \chi) = q^{-s} \sum_{a=1}^{q} \chi(a)\, \zeta\!\left(s, \tfrac{a}{q}\right). \]
+<p>And \(\zeta(s, a)\) is computed by the Euler–Maclaurin formula: sum the first \(N\) terms directly, replace the rest by an integral, and correct with Bernoulli numbers,</p>
+\[ \zeta(s, a) = \sum_{n=0}^{N-1} \frac{1}{(n+a)^s} + \frac{(N+a)^{1-s}}{s-1} + \frac{1}{2(N+a)^s} + \sum_{j=1}^{M} \frac{B_{2j}}{(2j)!}\, \frac{s(s+1)\cdots(s+2j-2)}{(N+a)^{s+2j-1}} + R, \]
+<p>with the remainder bounded explicitly:</p>
+\[ |R| \le \frac{4\,|s(s+1)\cdots(s+2M-1)|}{(2\pi)^{2M}} \cdot \frac{(N+a)^{-(\sigma+2M-1)}}{\sigma+2M-1}, \qquad \sigma = \operatorname{Re} s > 1 - 2M. \]
+<p>The formula holds wherever the bound makes sense, which is how it reaches the left half plane and the critical strip. Every operation is done in ball arithmetic: a midpoint and a radius, with each rounding added to the radius, and exponentials, logarithms, sines and cosines carrying their own error bounds. The remainder bound is added at the end. At \(s = 1\) the poles of the individual \(\zeta(s, a/q)\) cancel because \(\sum \chi(a) = 0\), and the limit is taken exactly.</p>
+<pre><code>hurwitzZeta(2, "1/4").low.toNumber();   // 17.197329154507… = π² + 8G, with G Catalan's constant
+
+// an enclosure contains the exact value where there is one
+const e = zetaValue(-5, { bits: 100 });
+const x = zetaExact(-5);                // -1/252
+e.low.lessThanOrEqual(x) &amp;&amp; x.lessThanOrEqual(e.high);    // true</code></pre>
+<p>Limits: the modulus of the character is at most 5000 for enclosures, and the cost grows with the modulus and with the height \(|t|\). For the zeros of \(\zeta\), with proof that they lie on the critical line, see the gamma and zeta page of <a href="https://ratmath.com/complex/gamma-zeta.html">@ratmath/complex</a>.</p>
+<template data-runbox>
+// the class number formula, three ways, for negative fundamental discriminants
+for (const D of [-3, -4, -7, -8, -15, -20, -23, -47, -71, -163]) {
+  const chi = kroneckerCharacter(D);
+  const w = D === -3 ? 6 : D === -4 ? 4 : 2;
+  const L1 = lValue(chi, 1, { bits: 40 });
+  const fromL1 = (w * Math.sqrt(-D) * L1.low.toNumber()) / (2 * Math.PI);
+  const exact = lValueExact(chi, 0).multiply(new Rational(BigInt(w), 2n));
+  PRINT(`D = ${D}`.padEnd(10), `(w/2)·L(0, χ) = ${exact}`.padEnd(22), `from L(1, χ): ${fromL1.toFixed(9)}`.padEnd(30), `forms: ${classNumber(D)}`);
+}
+</template>
+</article>
+</main>
+</div>
+</body>
+</html>

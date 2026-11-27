@@ -20,7 +20,7 @@
 <h1>Number theory with proofs attached</h1>
 <p class="lede">From a first course to algebraic number theory: primes that come with a certificate, congruences and reciprocity, Diophantine equations, p-adic numbers, elliptic curves, and the arithmetic of number fields.</p>
 <h2>What is here</h2>
-<p>Phases 1 to 4 of the plan: primes with certificates, factoring, arithmetic functions, congruences, reciprocity and sums of squares; linear and Pell equations, continued fractions and binary quadratic forms; p-adic numbers; and elliptic curves over the rationals and over finite fields, with the factoring method and the primality certificates built on them. Algebraic number theory and the analytic side are planned and listed at the bottom of this page.</p>
+<p>Every phase of the plan is built: primes with certificates, factoring, arithmetic functions, congruences, reciprocity and sums of squares; linear and Pell equations, continued fractions and binary quadratic forms; p-adic numbers; elliptic curves over the rationals and over finite fields, with the factoring method and the primality certificates built on them; rings of integers of number fields, prime ideals, class groups and unit groups; and the analytic side, with exact prime counts, Dirichlet characters, and values of zeta and L functions.</p>
 <div class="cards" id="cards"></div>
 
 <h2>A first program</h2>
@@ -39,24 +39,32 @@ padic(-1, 5n).sqrt().toString(12);           // "…223032431212": i in the 5-ad
 
 formatFactors(factor(2n ** 128n + 1n));      // "59649589127497217 · 5704689200685129054721", by the elliptic curve method
 isPrime(10n ** 60n + 7n);                    // true: an elliptic curve certificate, checked by the same verifier
-ellipticCurve([-43, 166]).torsion().structure;   // [7]: y² = x³ − 43x + 166 has a rational point of order 7</code></pre>
+ellipticCurve([-43, 166]).torsion().structure;   // [7]: y² = x³ − 43x + 166 has a rational point of order 7
 
-<h2>Three ideas</h2>
+ringOfIntegers([-8n, -2n, -1n, 1n]).describePrime(2).primes.length;   // 3: in Dedekind's cubic, 2 splits completely
+String(idealClassGroup([-65n, 0n, 0n, 1n]));  // "class group of Q(α), α a root of x³ − 65: C3 × C6, h = 18", proven
+unitGroup([-2n, 0n, 0n, 1n]).fundamentalUnits;   // [1 + α + α²]: the fundamental unit of Q(∛2), proven fundamental
+primePi(10n ** 12n);                         // 37607912018n, by Meissel's formula
+zetaValue(3).compactedDecimalInterval();     // "1.202056903159594285[38:41]": an interval that contains ζ(3)
+lValueExact(kroneckerCharacter(-23), 0);     // 3: the class number of Q(√−23), as an L-value</code></pre>
+
+<h2>Four ideas</h2>
 <p><strong>A proof, or a refusal.</strong> "Prime" means proven: below 2⁶⁴ by a test known to have no exceptions there, above it by a certificate (from the factors of n − 1, or from an elliptic curve) that an independent verifier checks. When no certificate can be found, <code>isPrime</code> refuses and says why, rather than guessing. A composite comes with a factor or a witness. See <a href="primes.html">Primes and certificates</a>.</p>
 <p><strong>Every "no" has a reason.</strong> A congruence with no solution names the gcd that blocks it, a number that is not a sum of two squares names the prime, two forms that are not equivalent name their different reduced forms, and an equivalence comes with the matrix that proves it.</p>
+<p><strong>Certified without hypotheses.</strong> Class groups and unit groups are usually computed fast under the generalised Riemann hypothesis and checked separately, if at all. Here the check is part of the answer: Minkowski's bound for the generators, and a saturation argument with a proven lower bound on regulators for the relations. Values of zeta and L functions come as intervals with rational endpoints. See <a href="class-groups.html">Class groups</a> and <a href="l-values.html">Zeta and L values</a>.</p>
 <p><strong>Exact at any size, lazily where it must be.</strong> Everything is BigInt and Core Rational arithmetic. p-adic numbers have infinitely many digits, so they are rules that compute as many as asked, exactly; what digits alone cannot decide, such as whether a number is exactly zero, is reported as unknown. See <a href="padic.html">p-adic numbers</a>.</p>
 
-<h2>What is planned</h2>
-<p>From the <a href="https://github.com/ratmath/ratmath/blob/main/docs/design/library-roadmap.md#4-a-number-theory-package-ratmathnumtheory">library roadmap</a>. Sizes are rough estimates in lines of source.</p>
+<h2>The plan, completed</h2>
+<p>From the <a href="https://github.com/ratmath/ratmath/blob/main/docs/design/library-roadmap.md#4-a-number-theory-package-ratmathnumtheory">library roadmap</a>.</p>
 <div class="tablewrap"><table class="plan">
-<tr><th>Phase</th><th>Contents</th><th>Estimate</th></tr>
+<tr><th>Phase</th><th>Contents</th><th></th></tr>
 <tr><td>1</td><td>Primes with certificates, arithmetic functions, congruences, reciprocity, sums of squares, re-exports</td><td>built</td></tr>
 <tr><td>2</td><td>Diophantine equations and binary quadratic forms</td><td>built</td></tr>
 <tr><td>3</td><td>p-adic numbers</td><td>built</td></tr>
 <tr><td>4</td><td>Elliptic curves; ECM and curve-based certificates</td><td>built</td></tr>
-<tr><td>5</td><td>Integral bases, discriminants, prime ideal factorisation</td><td>900</td></tr>
-<tr><td>6</td><td>Class groups and unit groups</td><td>1,500</td></tr>
-<tr><td>7</td><td>π(x), characters, ζ and L values</td><td>800</td></tr>
+<tr><td>5</td><td>Integral bases, discriminants, prime ideal factorisation</td><td>built</td></tr>
+<tr><td>6</td><td>Class groups and unit groups</td><td>built</td></tr>
+<tr><td>7</td><td>π(x), characters, ζ and L values</td><td>built</td></tr>
 </table></div>
 <p>It builds on Core and algebraic (the modular kernel and the algebraic numbers that continued fractions expand); continued fractions, Pell's equation and the Chinese remainder theorem moved here from algebraic.</p>
 
@@ -68,6 +76,8 @@ PRINT("F₆ =", formatFactors(factor(2n ** 64n + 1n)));
 PRINT("1105 as two squares:", twoSquaresAll(1105).map(([a, b]) => `${a}² + ${b}²`).join(", "));
 PRINT("x² − 2y² = 7:", pellSolutions(2, 7).solutions(5));
 PRINT("h(−3299) =", classNumber(-3299), "structure", classGroup(-3299).structure);
+PRINT("Q(∛65):", String(idealClassGroup([-65n, 0n, 0n, 1n])));
+PRINT("π(10¹⁰) =", primePi(10n ** 10n), "  ζ(3) ∈", zetaValue(3).compactedDecimalInterval());
 padic("1/3", 5n).toString(16)
 </template>
 </article>

@@ -1,13 +1,8 @@
 import { expect, test } from "bun:test";
 import * as lib from "../index.js";
 
-test("the package loads and says what is still planned", () => {
+test("the package loads and has nothing left in its plan", () => {
   expect(Array.isArray(lib.plan)).toBe(true);
-  expect(lib.plan.length).toBe(3);
-  lib.plan.forEach((p, i) => {
-    expect(p.phase).toBe(i + 5);
-    expect(typeof p.contents).toBe("string");
-    expect(typeof p.estimate).toBe("string");
-  });
+  expect(lib.plan.length).toBe(0);
   expect(Object.isFrozen(lib.plan)).toBe(true);
 });

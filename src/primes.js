@@ -7,6 +7,7 @@
 // certificate (provePrime) and refuses to answer when none can be found,
 // rather than return a probable answer as if it were certain.
 
+import { meissel } from "./primecount.js";
 import { isProbablePrime } from "@ratmath/algebraic";
 import { abs, big, gcd, iroot, isqrt, mod, powmod, refuse } from "./int.js";
 import { ecm } from "./ecm.js";
@@ -46,12 +47,12 @@ export function primes(limit) {
   for (let i = 1; i < comp.length; i++) if (!comp[i]) out.push(BigInt(2 * i + 1));
   return out;
 }
-/** π(x): how many primes are ≤ x, by sieving (x up to 10⁸; π(x) for larger x is planned with Meissel–Lehmer). */
+/** π(x): how many primes are ≤ x. A sieve below 10⁷, Meissel's formula above, up to 10¹². */
 export function primePi(x) {
   const n = big(x, "x");
   if (n < 2n) return 0n;
-  const L = sieveSize(n, "x");
-  const comp = oddSieve(L);
+  if (n > 10000000n) return meissel(n).pi;
+  const comp = oddSieve(Number(n));
   let c = 1;
   for (let i = 1; i < comp.length; i++) if (!comp[i]) c++;
   return BigInt(c);

@@ -23,7 +23,7 @@
 <div class="tablewrap"><table class="ref">
 <tr><th>Export</th><th>What it does</th></tr>
 <tr><td><code>primes(limit)</code></td><td>The primes up to the limit (at most 10⁷), by the sieve of Eratosthenes.</td></tr>
-<tr><td><code>primePi(x), nthPrime(k)</code></td><td>\(\pi(x)\) by sieving (x ≤ 10⁸); the k-th prime.</td></tr>
+<tr><td><code>primePi(x), nthPrime(k)</code></td><td>\(\pi(x)\) exactly, up to 10¹² (a sieve below 10⁷, Meissel's formula above); the k-th prime.</td></tr>
 <tr><td><code>isPrime(n)</code></td><td>Proven below 2⁶⁴ (Baillie–PSW); above, by a certificate, or throws <code>"unproven"</code>.</td></tr>
 <tr><td><code>isProbablePrime(n)</code></td><td>Baillie–PSW alone: fast, not a proof above 2⁶⁴.</td></tr>
 <tr><td><code>nextPrime(n), prevPrime(n), primesBetween(a, b)</code></td><td>Neighbouring primes; the primes in a window (segmented sieve, b &lt; 2⁶⁴).</td></tr>
@@ -146,12 +146,42 @@
 <tr><td><code>expansion(x, p)</code></td><td><code>{ valuation, preperiod, period }</code> of a rational's eventually periodic digits.</td></tr>
 <tr><td><code>padicValuation(x, p), padicNorm(x, p)</code></td><td>\(v_p(x)\) and \(|x|_p\) of a rational.</td></tr>
 </table></div>
+<h2>Number fields</h2>
+<div class="tablewrap"><table class="ref">
+<tr><th>Export</th><th>What it does</th></tr>
+<tr><td><code>NumberField, NumberFieldElement</code></td><td>Re-exported from <code>@ratmath/algebraic</code>. Wherever a field is expected, the coefficients of an irreducible polynomial (constant first) work too.</td></tr>
+<tr><td><code>ringOfIntegers(K)</code></td><td>The ring of integers, an <code>Order</code>, by the Round 2 algorithm; cached on the field.</td></tr>
+<tr><td><code>Order</code></td><td><code>basis</code>, <code>discriminant</code>, <code>index</code>, <code>polyDiscriminant</code>, <code>signature</code>, <code>steps</code>, <code>traceMatrix</code>, <code>ramifiedPrimes</code>, <code>coordinates(x)</code>, <code>element(coords)</code>, <code>contains(x)</code>, <code>primesAbove(p)</code>, <code>describePrime(p)</code>, <code>ideal(...generators)</code>, <code>unitIdeal</code>.</td></tr>
+<tr><td><code>integralBasis(K), fieldDiscriminant(K), primeDecomposition(K, p)</code></td><td>Shortcuts for the basis, the discriminant and <code>primesAbove</code>.</td></tr>
+<tr><td><code>PrimeIdeal</code></td><td><code>p</code>, <code>e</code>, <code>f</code>, <code>norm</code>, <code>generators</code>, <code>valuation(x)</code> of an element, ideal or prime, <code>toIdeal()</code>, <code>equals</code>.</td></tr>
+<tr><td><code>Ideal</code></td><td>A fractional ideal: <code>norm</code>, <code>basis</code>, <code>minimum</code>, <code>isIntegral</code>, <code>isOne</code>, <code>isPrime</code>, <code>mul</code>, <code>add</code>, <code>div</code>, <code>pow</code>, <code>inverse</code>, <code>contains(x)</code>, <code>equals</code>, <code>factor()</code> as <code>[{ prime, exponent }]</code>.</td></tr>
+<tr><td><code>idealClassGroup(K, options)</code></td><td>A <code>ClassGroup</code>: <code>h</code>, <code>structure</code>, <code>generators</code>, <code>classOf(I)</code>, <code>orderOf(I)</code>, <code>isPrincipal(I)</code> as <code>{ principal, generator }</code>, <code>proven</code>, <code>certificate</code>, <code>minkowskiBound</code>, <code>factorBase</code>. Options <code>certify</code>, <code>maxBound</code>, <code>maxIndexPrime</code>, <code>budget</code>, <code>rounds</code>.</td></tr>
+<tr><td><code>unitGroup(K, options)</code></td><td>A <code>UnitGroup</code>: <code>rank</code>, <code>torsionOrder</code>, <code>rootOfUnity</code>, <code>fundamentalUnits</code>, <code>regulator</code>, <code>isUnit(x)</code>, <code>exponents(u)</code> as <code>{ torsion, exponents }</code>, <code>proven</code>, <code>certificate</code>.</td></tr>
+<tr><td><code>fieldClassNumber(K), regulator(K), minkowskiBound(K)</code></td><td>The class number, the regulator (a double), and the floor of Minkowski's bound.</td></tr>
+<tr><td><code>formToIdeal(f, K)</code></td><td>The ideal \(a\mathbb{Z} + \tfrac{-b + \sqrt D}{2}\mathbb{Z}\) of the quadratic field of discriminant D for a form (a, b, c).</td></tr>
+</table></div>
+<h2>Counting primes, characters, zeta and L values</h2>
+<div class="tablewrap"><table class="ref">
+<tr><th>Export</th><th>What it does</th></tr>
+<tr><td><code>meissel(x)</code></td><td><code>{ pi, y, a, phi, P2 }</code>: \(\pi(x) = \varphi(x, a) + a - 1 - P_2\) with \(a = \pi(\sqrt[3]{x})\), for x ≤ 10¹².</td></tr>
+<tr><td><code>legendrePhi(x, a)</code></td><td>How many n ≤ x have no prime factor among the first a primes.</td></tr>
+<tr><td><code>dirichletCharacter(q, m)</code></td><td>The character \(\chi_q(m, \cdot)\) in Conrey's numbering, a <code>DirichletCharacter</code>.</td></tr>
+<tr><td><code>DirichletCharacter</code></td><td><code>modulus</code>, <code>number</code>, <code>order</code>, <code>conductor</code>, <code>isPrimitive</code>, <code>isPrincipal</code>, <code>isReal</code>, <code>isEven</code>, <code>parity</code>, <code>exponent(n)</code> (the fraction t with \(\chi(n) = e^{2\pi i t}\), or null), <code>value(n)</code>, <code>at(n)</code> for real characters, <code>exponents()</code>, <code>primitive()</code>, <code>induce(modulus)</code>, <code>mul</code>, <code>pow</code>, <code>conjugate</code>, <code>gaussSum()</code>.</td></tr>
+<tr><td><code>dirichletGroup(q)</code></td><td><code>{ modulus, order, characters, principal, primitive, real, structure, orthogonality(a, b) }</code>, for q ≤ 20000.</td></tr>
+<tr><td><code>kroneckerCharacter(D)</code></td><td>The Kronecker symbol \((D/\cdot)\) as a character modulo |D|.</td></tr>
+<tr><td><code>bernoulli(n), bernoulliPolynomial(n, x), generalizedBernoulli(k, χ)</code></td><td>\(B_n\) (with \(B_1 = -1/2\)), \(B_n(x)\), and \(B_{k,\chi}\).</td></tr>
+<tr><td><code>zetaExact(n)</code></td><td>A Rational for n ≤ 0; <code>{ coefficient, piPower }</code> for even n &gt; 0.</td></tr>
+<tr><td><code>lValueExact(χ, n)</code></td><td>\(L(n, \chi)\) for an integer n ≤ 0: a Rational for a real character, else an element of a cyclotomic field.</td></tr>
+<tr><td><code>zetaValue(s, { bits })</code></td><td>A proven enclosure of \(\zeta(s)\): a <code>RationalInterval</code> for real s, <code>{ re, im }</code> for <code>[σ, t]</code>. Width below \(2^{-\text{bits}}\), 64 by default.</td></tr>
+<tr><td><code>hurwitzZeta(s, a, { bits })</code></td><td>An enclosure of \(\zeta(s, a)\) for a rational a in (0, 1].</td></tr>
+<tr><td><code>lValue(χ, s, { bits })</code></td><td>An enclosure of \(L(s, \chi)\) anywhere in the plane (modulus ≤ 5000); at s = 1 for a non-principal character.</td></tr>
+</table></div>
 <h2>Integers and the rest</h2>
 <div class="tablewrap"><table class="ref">
 <tr><th>Export</th><th>What it does</th></tr>
 <tr><td><code>isqrt(n), iroot(n, k), gcd(a, b), lcm(a, b), egcd(a, b)</code></td><td>Integer roots, gcd and lcm, and Bézout's <code>{ g, x, y }</code>.</td></tr>
-<tr><td><code>NumberTheoryError</code></td><td>Thrown for refusals; <code>code</code> is one of "bad-argument", "too-large", "too-hard", "unproven", "unknown-valuation", "not-a-square", "diverges", "singular", "not-on-curve".</td></tr>
-<tr><td><code>plan</code></td><td>The phases still to come (5 to 7), each <code>{ phase, contents, estimate }</code>.</td></tr>
+<tr><td><code>NumberTheoryError</code></td><td>Thrown for refusals; <code>code</code> is one of "bad-argument", "too-large", "too-hard", "unproven", "unknown-valuation", "not-a-square", "diverges", "singular", "not-on-curve", "budget", "pole", "precision", "unsupported".</td></tr>
+<tr><td><code>plan</code></td><td>The phases still to come: empty, everything planned is built.</td></tr>
 </table></div>
 <template data-runbox>
 // a tour: one call from each section
@@ -160,6 +190,8 @@ PRINT(sigma(28), totient(1001), crt([1, 2, 3], [5, 7, 9]));
 PRINT(ellipticCurve([2, 3], { mod: 97 }).count(), ecm(2n ** 128n + 1n), ellipticCurve([0, 1]).torsion().structure);
 PRINT(jacobi(1001, 9907), twoSquaresAll(65), fourSquares(2026));
 PRINT(frobenius([6, 9, 20]), pellSolutions(2, 7).fundamental, classGroup(-3299).structure);
+PRINT(fieldDiscriminant([-2n, 0n, 0n, 1n]), fieldClassNumber([-7n, 0n, 0n, 1n]), regulator([-2n, 0n, 0n, 1n]));
+PRINT(primePi(10n ** 9n), String(dirichletCharacter(7, 3)), zetaExact(-3), String(zetaExact(4)));
 padic(-1, 5n).sqrt().toString(16)
 </template>
 </article>
